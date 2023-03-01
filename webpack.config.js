@@ -1,6 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
+    mode: 'development',
     entry: {
         main: './src/index.js',
     },
@@ -8,7 +9,6 @@ module.exports = {
         filename: 'index.js',
     },
 
-    watch: true,
     watchOptions: {
         ignored: '**/node_modules',
     },
@@ -22,6 +22,13 @@ module.exports = {
             {
                 test: /\.(css)$/,
                 use: ['style-loader', 'css-loader'],
+            },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                loader: 'file-loader',
+                options: {
+                    name: '[path][name].[ext]',
+                },
             },
         ],
     },
