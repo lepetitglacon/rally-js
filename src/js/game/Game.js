@@ -3,6 +3,7 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 import * as CANNON from 'cannon-es'
 import CannonDebugRenderer from 'cannon-es-debugger'
+import GLTFLoader from 'three/examples/jsm/loaders/GLTFLoader';
 
 export default function Game() {
     const scene = new THREE.Scene()
@@ -61,10 +62,11 @@ export default function Game() {
     groundMesh.rotateX(-Math.PI / 2)
     groundMesh.receiveShadow = true
     scene.add(groundMesh)
-    const groundShape = new CANNON.Box(new CANNON.Vec3(50, 1, 50))
+    const groundShape = new CANNON.Plane()
     const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial })
     groundBody.addShape(groundShape)
-    groundBody.position.set(0, -1, 0)
+    groundBody.quaternion.setFromEuler(-Math.PI/2, 0, 0)
+    //groundBody.position.set(0, -1, 0)
     world.addBody(groundBody)
 
 //jumps
