@@ -1,10 +1,9 @@
 import { Vec3 } from 'cannon-es';
+import { GUI } from 'dat.gui';
 
 export default class KeyboardEvents {
 
     constructor() {
-        this.velocityFactor = 0.2;
-        this.jumpVelocity = 20;
 
         this.forward = false
         this.backward = false
@@ -12,7 +11,15 @@ export default class KeyboardEvents {
         this.left = false
         this.up = false
         this.down = false
+        this.escape = false
+
         this.movementVector = new Vec3()
+        // const gui = GUI()
+        // let folder = gui.addFolder('Listener')
+        // folder.add(this.movementVector, "x", -10, 10).listen()
+        // folder.add(this.movementVector, "y", -10, 10).listen()
+        // folder.add(this.movementVector, "z", -10, 10).listen()
+        // folder.open()
 
         document.addEventListener('keydown', (event) => {
 
@@ -40,6 +47,11 @@ export default class KeyboardEvents {
                 case ' ':
                 // case 'ArrowRight':
                     this.up = true
+                    break;
+
+                case 'Escape':
+                    // case 'ArrowRight':
+                    this.escape = true
                     break;
             }
         });
@@ -70,27 +82,31 @@ export default class KeyboardEvents {
                     // case 'ArrowRight':
                     this.up = false
                     break;
+
+                case 'Escape':
+                    // case 'ArrowRight':
+                    this.escape = false
+                    break;
             }
         });
     }
 
-    update(delta) {
+    update() {
         this.movementVector.set(0,0,0)
-
         if ( this.forward ){
-            this.movementVector.z = -this.velocityFactor * delta;
+            this.movementVector.z = -1;
         }
         if ( this.backward ){
-            this.movementVector.z = this.velocityFactor * delta;
+            this.movementVector.z = +1;
         }
         if ( this.left ){
-            this.movementVector.x = -this.velocityFactor * delta;
+            this.movementVector.x = -1;
         }
         if ( this.right ){
-            this.movementVector.x = this.velocityFactor * delta;
+            this.movementVector.x = 1;
         }
         if ( this.up ){
-            this.movementVector.y = this.velocityFactor * delta;
+            this.movementVector.y = 1;
         }
     }
 }
