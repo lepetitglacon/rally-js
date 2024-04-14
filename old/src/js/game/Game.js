@@ -219,15 +219,15 @@ export default function Game() {
             }
         }
         car.accelerate = function () {
-            if (keyMap['KeyW'] || keyMap['ArrowUp']) {
-                if (car.acceleration < car.gears[car.gear].maxAcceleration) {
+            if (keyMap['KeyW'] || keyMap['ArrowUp'] || axis.accelerator < 1.0) {
+                if (car.accelezration < car.gears[car.gear].maxAcceleration) {
                     car.acceleration += car.gears[car.gear].acceleration
                 }
             }
 
         }
         car.break = function () {
-            if (keyMap['KeyS'] || keyMap['ArrowDown']) {
+            if (keyMap['KeyS'] || keyMap['ArrowDown'] || axis.break < 1.0) {
                 if (car.acceleration !== 0) {
                     car.breaking = .5
                     if (car.acceleration > 0) {
@@ -431,6 +431,21 @@ export default function Game() {
     document.addEventListener('keydown', onDocumentKey, false)
     document.addEventListener('keyup', onDocumentKey, false)
 
+    let connectedGamePad = null
+    window.addEventListener("gamepadconnected", function (e) {
+        console.log(
+            "Manette connectée à l'indice %d : %s. %d boutons, %d axes.",
+            e.gamepad.index,
+            e.gamepad.id,
+            e.gamepad.buttons.length,
+            e.gamepad.axes.length,
+        );
+        let gp = navigator.getGamepads()[e.gamepad.index];
+        console.log(gp.axes)
+        console.log(gp.buttons)
+        connectedGamePad = e.gamepad.index
+    });
+
     window.addEventListener('resize', onWindowResize, false)
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight
@@ -449,19 +464,43 @@ export default function Game() {
 
     const v = new THREE.Vector3()
 
+
+
+    const axis = {
+        wheel: 0,
+        accelerator: 0,
+        break: 0,
+        clutch: 0,
+    }
+
+    function updateInput(gp) {
+        axis.wheel = gp.axes[0]
+        axis.accelerator = gp.axes[2]
+        axis.break = gp.axes[6]
+        axis.clutch = gp.axes[1]
+    }
+
     function animate() {
         requestAnimationFrame(animate)
         helper.update()
         delta = Math.min(clock.getDelta(), 0.1)
-        world.step(delta)
-        cannonDebugRenderer.update()
+
+        // update input
+        if (connectedGamePad !== null) {
+            let gp = navigator.getGamepads()[connectedGamePad];
+            updateInput(gp)
+        }
 
         car.update()
+
+        world.step(delta)
+        cannonDebugRenderer.update()
 
         camera.lookAt(car.mesh.position)
         chaseCamPivot.getWorldPosition(v)
         if (v.y < 1) {v.y = 1}
         camera.position.lerpVectors(camera.position, v, 0.05)
+
         render()
         stats.update()
     }
