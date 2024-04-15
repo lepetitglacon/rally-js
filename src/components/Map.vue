@@ -17,7 +17,9 @@ const geom = new THREE.PlaneGeometry(mapWidth, mapWidth, mapWidth, mapWidth)
 <template>
   <TresMesh
       :geometry="geom"
-      :rotation-x="Math.PI /2">
+      :rotation-x="Math.PI /2"
+      :position-y="-50"
+  >
     <TresMeshPhongMaterial
         :map="map"
         :displacementMap="texture"

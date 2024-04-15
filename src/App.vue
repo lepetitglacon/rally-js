@@ -4,7 +4,7 @@ import {SRGBColorSpace} from "three";
 import OrbitControls from "./components/OrbitControls.vue";
 import Car from "./components/Car.vue";
 import Map from "./components/Map.vue";
-
+import CannonWorld from "./components/cannon/CannonWorld.vue";
 
 </script>
 
@@ -17,7 +17,7 @@ import Map from "./components/Map.vue";
         :look-at="[0, 0, 0]"
     />
     <TresAmbientLight :intensity="1" />
-
+    <CannonWorld/>
 
 
 
