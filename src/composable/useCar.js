@@ -16,7 +16,7 @@ const car = {
 const shape = new CANNON.Box(new CANNON.Vec3(2, 1.5, 4))
 const carBody = new CANNON.Body({
     mass: 950, // Mass of the car
-    position: new CANNON.Vec3(0, 2, 0), // Initial position
+    position: new CANNON.Vec3(0, 150, 0), // Initial position
     shape: shape, // Box shape for simplicity
 });
 car.body = carBody

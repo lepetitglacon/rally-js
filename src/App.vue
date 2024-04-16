@@ -13,7 +13,8 @@ import CannonWorld from "./components/cannon/CannonWorld.vue";
 
   <TresCanvas shadows window-size :output-encoding="SRGBColorSpace" clear-color="#82DBC5">
     <TresPerspectiveCamera
-        :position="[3, 3, 3]"
+        :args="[45, 1, 0.1, 10000]"
+        :position="[50, 300, 50]"
         :look-at="[0, 0, 0]"
     />
     <TresAmbientLight :intensity="1" />
