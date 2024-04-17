@@ -5,6 +5,7 @@ import {useCannonContext} from "../composable/useCannonContext.js";
 import {useCar} from "../composable/useCar.js";
 import {computed} from "vue";
 import {useGamepad} from "@vueuse/core";
+import * as CANNON from "cannon-es";
 
 const { gamepads } = useGamepad()
 const gamepad = computed(() => {
@@ -34,11 +35,14 @@ console.log(car)
 
 for (const wheel of car.wheels) {
   scene.value.add(wheel.mesh)
+  scene.value.add(wheel.attachmentA)
+  scene.value.add(wheel.attachmentB)
+  scene.value.add(wheel.hingeLine)
   world.addBody(wheel.body)
   world.addConstraint(wheel.constraint)
 
   world.addEventListener('postStep', (event) => {
-    wheel.suspension.applyForce()
+    // wheel.suspension.applyForce()
   })
 
 }
@@ -46,7 +50,7 @@ for (const wheel of car.wheels) {
 onLoop(() => {
   for (const wheel of car.wheels) {
     if (gamepad.value) {
-      wheel.constraint.setMotorSpeed()
+      // wheel.constraint.setMotorSpeed()
       wheel.update(acceleration.value, angle.value)
     }
   }
