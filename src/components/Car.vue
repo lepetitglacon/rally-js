@@ -3,7 +3,7 @@ import {useLoader, useRenderLoop, useTresContext} from '@tresjs/core'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader'
 import {useCannonContext} from "../composable/useCannonContext.js";
 import {useCar} from "../composable/useCar.js";
-import {computed} from "vue";
+import {computed, onMounted} from "vue";
 import {useGamepad} from "@vueuse/core";
 import * as CANNON from "cannon-es";
 
@@ -11,23 +11,26 @@ const { gamepads } = useGamepad()
 const gamepad = computed(() => {
   if (gamepads.value) {
     return gamepads.value[0]
+  } else {
+	  return zqsdPad
   }
-  return null
 })
 const acceleration = computed(() => {
   if (gamepad.value) {
     return (-gamepad.value.axes[2] + 1) * 50
+  } else {
+	return (-zqsdPad.z + 1) * 50
   }
-  return 0
 })
 const angle = computed(() => {
   if (gamepad.value) {
     return gamepad.value.axes[0]
+  } else {
+    return zqsdPad.q
   }
-  return 0
 })
 
-const { scene, camera, renderer } = useTresContext()
+const { scene } = useTresContext()
 const { onLoop } = useRenderLoop()
 const { world } = useCannonContext()
 const { car } = useCar()
@@ -54,6 +57,34 @@ onLoop(() => {
       wheel.update(acceleration.value, angle.value)
     }
   }
+})
+
+const zqsdPad = {
+	z: -1,
+	q: -1,
+	s: -1,
+	d: -1,
+}
+
+onMounted(() => {
+	window.addEventListener('keydown', (e) => {
+		console.log(e)
+		switch (e.key) {
+			case 'z': { zqsdPad.z = 1; break }
+			case 'q': { zqsdPad.q = 1; break }
+			case 's': { zqsdPad.s = 1; break }
+			case 'd': { zqsdPad.d = 1; break }
+		}
+	})
+	window.addEventListener('keyup', (e) => {
+		console.log(e)
+		switch (e.key) {
+			case 'z': { zqsdPad.z = -1; break }
+			case 'q': { zqsdPad.q = -1; break }
+			case 's': { zqsdPad.s = -1; break }
+			case 'd': { zqsdPad.d = -1; break }
+		}
+	})
 })
 </script>
 
