@@ -36,58 +36,20 @@ export default class Wheel {
             car.body,
             this.rotuleBody,
             {
-                pivotA: config.wheelPosition, // Attachment point on car chassis
-                pivotB: new CANNON.Vec3(0, 1, 0),
-                axisA: new CANNON.Vec3(0, 1, 0),
-                axisB: new CANNON.Vec3(0, 0, 0),
+                pivotA: config.wheelPosition,
+                axisA: new CANNON.Vec3(0, 0, 1),
+                // axisB: new CANNON.Vec3(0, 1, 0),
             }
         )
         world.addConstraint(this.rotuleConstraint)
 
-        // Define object shapes (replace with your desired shapes)
-        const shapeA = new CANNON.Sphere(1);
-        const shapeB = new CANNON.Box(new CANNON.Vec3(1, 1, 0.5));
-
-// Create materials (optional, you can use default material)
-        const material = new CANNON.Material();
-
-// Create bodies with shapes and materials
-        const bodyA = new CANNON.Body({ mass: 1, shape: shapeA, material: material });
-        const bodyB = new CANNON.Body({ mass: 1, shape: shapeB, material: material });
-        bodyA.position.set(10, 130, 10)
-        bodyB.position.set(10, 130, 10)
-
-// Define attachment points (relative to body center of mass)
-        const attachmentPointA = new CANNON.Vec3(0, 1, 0); // 1 unit above bodyA's center
-        const attachmentPointB = new CANNON.Vec3(0, -0.5, 0); // 0.5 units below bodyB's center
-
-// Define rotation axis (unit vector)
-        const axis = new CANNON.Vec3(1, 0, 0); // Rotate around X-axis
-
-// Create the HingeConstraint
-        const constraint = new CANNON.HingeConstraint(
-            bodyA, bodyB, {
-                pivotA: attachmentPointA,
-                pivotB: attachmentPointB,
-                axisA: axis
-            }
-        );
-
-// Add constraint to the world
-        world.addConstraint(constraint);
-
-// Add bodies to the world (optional, depending on your physics loop)
-        world.addBody(bodyA);
-        world.addBody(bodyB);
-
-
         // this.spring = new CANNON.Spring(
-        //     car.body,
+        //     this.rotuleBody,
         //     this.body,
         //     {
-        //         localAnchorA: config.wheelPosition,
-        //         restLength: 0.2,
-        //         stiffness: 1000,
+        //         // localAnchorA: ,
+        //         restLength: 0,
+        //         stiffness: 10,
         //         damping: 100,
         //     })
         // world.addEventListener('postStep', (event) => {
@@ -100,14 +62,10 @@ export default class Wheel {
         //     this.rotuleBody,
         //     this.body,
         //     {
-        //         pivotA: config.wheelPosition, // Attachment point on car chassis
+        //         pivotA: new CANNON.Vec3(0, -1,0), // Attachment point on car chassis
         //         pivotB: new CANNON.Vec3(),        // Attachment point on wheel (center of bottom face)
-        //         axisA: new CANNON.Vec3(0, 0, 1),  // Hinge axis (car's upward Y-axis for steering)
+        //         axisA: new CANNON.Vec3(1, 0, 0),  // Hinge axis (car's upward Y-axis for steering)
         //         axisB: new CANNON.Vec3(0, 1, 0),  // Hinge axis (car's upward Y-axis for steering)
-        //         // Optional limits for steering angle (adjust values as needed)
-        //         lowerAngle: -Math.PI / 4,  // Minimum steering angle (e.g., -45 degrees)
-        //         upperAngle: Math.PI / 4,   // Maximum steering angle (e.g., 45 degrees)
-        //         maxForce: 1000
         //     }
         // );
         // world.addConstraint(this.constraint)
@@ -133,7 +91,8 @@ export default class Wheel {
 
         if (this.isDrivingWheel && this.rotuleConstraint) {
             // this.rotuleConstraint.setMotorSpeed(forwardVelocity)
-            this.rotuleConstraint.axisA.z = -rightVelocity
+            console.log(this.rotuleConstraint.axisA.y)
+            this.rotuleConstraint.axisA.y = -rightVelocity
         }
     }
 }

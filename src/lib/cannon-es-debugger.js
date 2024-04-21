@@ -332,22 +332,35 @@ function CannonDebugger(scene, world, _temp) {
   function createHingeConstraintMesh(shape) {
     console.log(shape)
     const globalMesh = new Mesh()
+    const color = new Color('#' + Math.floor(Math.random()*16777215).toString(16))
 
     const anchorPointA = new Mesh(new CylinderGeometry(0.1, 0.1, 0.2), _material.clone())
-    anchorPointA.position.copy(shape.bodyA.position)
-    anchorPointA.material.color = new Color('#' + Math.floor(Math.random()*16777215).toString(16))
+    anchorPointA.position.copy(shape.bodyA.position).add(shape.pivotA)
+    anchorPointA.material.color = color
     globalMesh.add(anchorPointA)
 
     const anchorPointB = new Mesh(new SphereGeometry(0.1), _material.clone())
-    anchorPointB.position.copy(shape.bodyB.position)
-    anchorPointB.material.color = new Color('#' + Math.floor(Math.random()*16777215).toString(16))
+    anchorPointB.position.copy(shape.bodyB.position).add(shape.pivotB)
+    anchorPointB.material.color = color
     globalMesh.add(anchorPointB)
 
     const geometry = new BufferGeometry().setFromPoints(
         [anchorPointA.position, anchorPointB.position]
     );
-    const mesh = new Line( geometry, new LineBasicMaterial({color: 0xff0000}) );
+    const mesh = new Line( geometry, new LineBasicMaterial({color: color}) );
     globalMesh.add(mesh)
+
+    const axisAGeometry = new BufferGeometry().setFromPoints(
+        [anchorPointA.position, anchorPointA.position.clone().add(shape.axisA)]
+    );
+    const axisAMesh = new Line( axisAGeometry, new LineBasicMaterial({color: color}) );
+    globalMesh.add(axisAMesh)
+
+    const axisBGeometry = new BufferGeometry().setFromPoints(
+        [anchorPointB.position, anchorPointB.position.clone().add(shape.axisB)]
+    );
+    const axisBMesh = new Line( axisBGeometry, new LineBasicMaterial({color: color}) );
+    globalMesh.add(axisBMesh)
 
     return globalMesh;
   }
@@ -395,9 +408,9 @@ function CannonDebugger(scene, world, _temp) {
       }
       case constraintsTypes.HingeConstraint: {
         const anchorPointA = mesh.children[0]
-        anchorPointA.position.copy(shape.bodyA.position)
+        anchorPointA.position.copy(shape.bodyA.position).add(shape.pivotA)
         const anchorPointB = mesh.children[1]
-        anchorPointB.position.copy(shape.bodyB.position)
+        anchorPointB.position.copy(shape.bodyB.position).add(shape.pivotB)
         const line = mesh.children[2]
         line.geometry.attributes.position.array[0] = anchorPointA.position.clone().x
         line.geometry.attributes.position.array[1] = anchorPointA.position.clone().y
@@ -406,6 +419,22 @@ function CannonDebugger(scene, world, _temp) {
         line.geometry.attributes.position.array[4] = anchorPointB.position.clone().y
         line.geometry.attributes.position.array[5] = anchorPointB.position.clone().z
         line.geometry.attributes.position.needsUpdate = true;
+        const lineAxisA = mesh.children[3]
+        lineAxisA.geometry.attributes.position.array[0] = anchorPointA.position.clone().x
+        lineAxisA.geometry.attributes.position.array[1] = anchorPointA.position.clone().y
+        lineAxisA.geometry.attributes.position.array[2] = anchorPointA.position.clone().z
+        lineAxisA.geometry.attributes.position.array[3] = anchorPointA.position.clone().add(shape.axisA).x
+        lineAxisA.geometry.attributes.position.array[4] = anchorPointA.position.clone().add(shape.axisA).y
+        lineAxisA.geometry.attributes.position.array[5] = anchorPointA.position.clone().add(shape.axisA).z
+        lineAxisA.geometry.attributes.position.needsUpdate = true;
+        const lineAxisB = mesh.children[4]
+        lineAxisB.geometry.attributes.position.array[0] = anchorPointB.position.clone().x
+        lineAxisB.geometry.attributes.position.array[1] = anchorPointB.position.clone().y
+        lineAxisB.geometry.attributes.position.array[2] = anchorPointB.position.clone().z
+        lineAxisB.geometry.attributes.position.array[3] = anchorPointA.position.clone().add(shape.axisB).x
+        lineAxisB.geometry.attributes.position.array[4] = anchorPointA.position.clone().add(shape.axisB).y
+        lineAxisB.geometry.attributes.position.array[5] = anchorPointA.position.clone().add(shape.axisB).z
+        lineAxisB.geometry.attributes.position.needsUpdate = true;
         break;
       }
       default: {

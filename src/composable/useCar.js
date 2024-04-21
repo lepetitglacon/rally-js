@@ -17,7 +17,11 @@ export class Car {
     constructor() {
 
         this.shape = new CANNON.Box(new CANNON.Vec3(3.5, 1.5, 2))
-        this.body = new CANNON.Body({mass: 1000, shape: this.shape})
+        this.body = new CANNON.Body({
+            mass: 1000,
+            shape: this.shape,
+            type: CANNON.Body.KINEMATIC
+        })
         this.body.position.y = 125
         world.addBody(this.body)
 
