@@ -2,7 +2,7 @@
 
 import * as CANNON from "cannon-es";
 import { useCannonContext } from "../../composable/useCannonContext.js";
-import CannonDebugger from "cannon-es-debugger";
+import CannonDebugger from "../../lib/cannon-es-debugger.js";
 import {useRenderLoop, useTresContext} from "@tresjs/core";
 
 const { world } = useCannonContext()
@@ -22,6 +22,12 @@ const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial })
 groundBody.addShape(groundShape)
 groundBody.position.set(0, -1, 0)
 world.addBody(groundBody)
+
+if (!world.springs) {
+  world.springs = []
+}
+
+console.log(world)
 
 onLoop(({ delta, elapsed, clock }) => {
   // I will run at every frame ~60FPS (depending of your monitor)

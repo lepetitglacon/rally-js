@@ -14,26 +14,21 @@ import CannonWorld from "./components/cannon/CannonWorld.vue";
   <TresCanvas shadows window-size :output-encoding="SRGBColorSpace" clear-color="#82DBC5">
     <TresPerspectiveCamera
         :args="[45, 1, 0.1, 10000]"
-        :position="[50, 300, 50]"
-        :look-at="[0, 0, 0]"
+        :position="[50, 140, 50]"
+        :look-at="[0, 120, 0]"
     />
     <TresAmbientLight :intensity="1" />
+    <OrbitControls/>
+
+
     <CannonWorld/>
 
-
-
-    <OrbitControls/>
-    <Suspense>
-      <Car/>
-    </Suspense>
     <Suspense>
       <Map/>
     </Suspense>
-
-    <TresMesh>
-      <TresTorusGeometry :args="[1, 0.5, 16, 32]" />
-      <TresMeshBasicMaterial color="orange" />
-    </TresMesh>
+    <Suspense>
+      <Car/>
+    </Suspense>
   </TresCanvas>
 
 </template>

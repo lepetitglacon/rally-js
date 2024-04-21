@@ -3,60 +3,60 @@ import {useLoader, useRenderLoop, useTresContext} from '@tresjs/core'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader'
 import {useCannonContext} from "../composable/useCannonContext.js";
 import {useCar} from "../composable/useCar.js";
-import {computed, onMounted} from "vue";
+import {computed, onMounted, toRaw} from "vue";
 import {useGamepad} from "@vueuse/core";
 import * as CANNON from "cannon-es";
 
-const { gamepads } = useGamepad()
+const { gamepads, onConnected } = useGamepad()
+onConnected((gamepadIndex) => {
+  console.log(gamepads.value[gamepadIndex].id, ' connected')
+})
+
 const gamepad = computed(() => {
   if (gamepads.value) {
     return gamepads.value[0]
-  } else {
-	  return zqsdPad
   }
 })
+
 const acceleration = computed(() => {
   if (gamepad.value) {
     return (-gamepad.value.axes[2] + 1) * 50
   } else {
-	return (-zqsdPad.z + 1) * 50
+	  return 0
   }
 })
 const angle = computed(() => {
   if (gamepad.value) {
     return gamepad.value.axes[0]
   } else {
-    return zqsdPad.q
+    return zqsdPad.z
+  }
+})
+const gear = computed(() => {
+  if (gamepad.value) {
+    if (gamepad.value.buttons[12].pressed) {return 1}
+    if (gamepad.value.buttons[13].pressed) {return 2}
+    if (gamepad.value.buttons[14].pressed) {return 3}
+    if (gamepad.value.buttons[15].pressed) {return 4}
+    if (gamepad.value.buttons[16].pressed) {return 5}
+    if (gamepad.value.buttons[17].pressed) {return 6}
+    return 0
+  } else {
+    return 0
   }
 })
 
-const { scene } = useTresContext()
+const { scene, camera, controls } = useTresContext()
 const { onLoop } = useRenderLoop()
 const { world } = useCannonContext()
 const { car } = useCar()
-console.log(car)
 
 for (const wheel of car.wheels) {
   scene.value.add(wheel.mesh)
-  scene.value.add(wheel.attachmentA)
-  scene.value.add(wheel.attachmentB)
-  scene.value.add(wheel.hingeLine)
-  world.addBody(wheel.body)
-  world.addConstraint(wheel.constraint)
-
-  world.addEventListener('postStep', (event) => {
-    // wheel.suspension.applyForce()
-  })
-
 }
 
 onLoop(() => {
-  for (const wheel of car.wheels) {
-    if (gamepad.value) {
-      // wheel.constraint.setMotorSpeed()
-      wheel.update(acceleration.value, angle.value)
-    }
-  }
+    car.update(acceleration.value, angle.value, gear.value)
 })
 
 const zqsdPad = {
@@ -68,7 +68,6 @@ const zqsdPad = {
 
 onMounted(() => {
 	window.addEventListener('keydown', (e) => {
-		console.log(e)
 		switch (e.key) {
 			case 'z': { zqsdPad.z = 1; break }
 			case 'q': { zqsdPad.q = 1; break }
@@ -77,7 +76,6 @@ onMounted(() => {
 		}
 	})
 	window.addEventListener('keyup', (e) => {
-		console.log(e)
 		switch (e.key) {
 			case 'z': { zqsdPad.z = -1; break }
 			case 'q': { zqsdPad.q = -1; break }

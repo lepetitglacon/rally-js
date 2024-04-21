@@ -3,8 +3,6 @@ import * as CANNON from "cannon-es";
 import * as THREE from "three";
 import KeyboardEvents from "../events/KeyboardEvents";
 
-
-
 export default class Car {
     constructor(world) {
         const DRAG = 0.4257

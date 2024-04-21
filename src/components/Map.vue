@@ -40,12 +40,12 @@ img.onload = () => {
   })
   heightMap.setHeightsFromImage(img, new THREE.Vector3(scale, scale, 1500))
 
-  const groundMaterial = new CANNON.Material('groundMaterial')
-  groundMaterial.friction = .8
-  groundMaterial.restitution = 0.1
+  const tarmacMaterial = new CANNON.Material("tarmacMaterial");
+  tarmacMaterial.friction = 0.8; // Moderate friction to represent real tarmac
+  tarmacMaterial.restitution = 0.2; // Lower bounce than tire
 
   const heightfieldBody = new CANNON.Body({ mass: 0 })
-  heightfieldBody.material = groundMaterial
+  heightfieldBody.material = tarmacMaterial
   heightfieldBody.addShape(heightMap)
   world.addBody(heightfieldBody)
 
