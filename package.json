@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@injectit/threejs-nodejs-exporters": "^0.0.2",
     "@tresjs/core": "^3.8.1",
     "@vueuse/core": "^10.9.0",
     "cannon-es": "^0.20.0",
