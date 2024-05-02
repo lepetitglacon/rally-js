@@ -91,7 +91,6 @@ export default class Wheel {
 
         if (this.isDrivingWheel && this.rotuleConstraint) {
             // this.rotuleConstraint.setMotorSpeed(forwardVelocity)
-            console.log(this.rotuleConstraint.axisA.y)
             this.rotuleConstraint.axisA.y = -rightVelocity
         }
     }

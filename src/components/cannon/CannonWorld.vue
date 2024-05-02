@@ -15,14 +15,6 @@ const groundMaterial = new CANNON.Material('groundMaterial')
 groundMaterial.friction = .8
 groundMaterial.restitution = 0.1
 
-const mapSize = 200
-
-const groundShape = new CANNON.Box(new CANNON.Vec3(mapSize, 1, mapSize))
-const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial })
-groundBody.addShape(groundShape)
-groundBody.position.set(0, -1, 0)
-world.addBody(groundBody)
-
 if (!world.springs) {
   world.springs = []
 }

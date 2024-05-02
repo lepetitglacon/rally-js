@@ -136,7 +136,6 @@ function CannonDebugger(scene, world, _temp) {
     let mesh = new Mesh();
 
     if (isConstraint(shape)) {
-      console.log(shape.constructor.name)
       switch (shape.constructor.name) {
         case constraintsTypes.Spring: {
           mesh = createSpringConstraintMesh(shape)
@@ -307,7 +306,6 @@ function CannonDebugger(scene, world, _temp) {
   }
 
   function createSpringConstraintMesh(shape) {
-    console.log(shape)
     const globalMesh = new Mesh()
 
     const anchorPointA = new Mesh(new SphereGeometry(0.2, 10, 10), _material.clone())
@@ -330,7 +328,6 @@ function CannonDebugger(scene, world, _temp) {
   }
 
   function createHingeConstraintMesh(shape) {
-    console.log(shape)
     const globalMesh = new Mesh()
     const color = new Color('#' + Math.floor(Math.random()*16777215).toString(16))
 

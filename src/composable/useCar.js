@@ -23,6 +23,7 @@ export class Car {
             type: CANNON.Body.KINEMATIC
         })
         this.body.position.y = 125
+        this.body.position.z += 20
         world.addBody(this.body)
 
         this.wheels = []
