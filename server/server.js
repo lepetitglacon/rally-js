@@ -60,7 +60,7 @@ exporter.parse('glb', file, model => {
                         raycasterOrigin.set(x * chunkSpacing, mapAABBReplaced.max.y + 1, z * chunkSpacing)
                         intersects = raycaster.intersectObject(mesh, false);
                         if (intersects.length > 0) {
-                            heightmap[x][z] = intersects[0]?.point?.y ?? 0
+                            heightmap[x][z] = Math.round(intersects[0]?.point?.y) ?? 0
                         } else {
                             console.log('finished at ', x, z)
                             break chunkLoop
