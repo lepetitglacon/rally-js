@@ -18,7 +18,7 @@ const { world } = useCannonContext()
 const sceneOffset = -239
 scene.position.y = sceneOffset
 
-import heightmap_json from '../assets/heightmap/data/heightmap.json'
+import heightmap_json from '../assets/heightmap/heightmap.json'
 
 const emptyChunk = []
 for (let j = 0; j < 32; j++) {
