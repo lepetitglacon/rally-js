@@ -49,14 +49,11 @@ const gear = computed(() => {
 const { scene, camera, controls } = useTresContext()
 const { onLoop } = useRenderLoop()
 const { world } = useCannonContext()
-const { car } = useCar()
+// const { car } = useCar()
 
-for (const wheel of car.wheels) {
-  scene.value.add(wheel.mesh)
-}
+
 
 onLoop(() => {
-    car.update(acceleration.value, angle.value, gear.value)
 })
 
 const zqsdPad = {

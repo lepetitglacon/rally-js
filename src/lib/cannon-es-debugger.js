@@ -200,7 +200,9 @@ function CannonDebugger(scene, world, _temp) {
 
         case HEIGHTFIELD: {
           const geometry = createHeightfieldGeometry(shape);
-          mesh = new Mesh(geometry, _material);
+          mesh = new Mesh(geometry, _material.clone());
+          mesh.material.color = new Color('#232323')
+          mesh.material.opacity = .5
           shape.geometryId = geometry.id;
           break;
         }
