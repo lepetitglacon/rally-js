@@ -12,7 +12,7 @@ export class Car extends EventTarget {
 
 
         this.curvePoints = [
-            new THREE.Vector3(1000, 0, -900),
+            new THREE.Vector3(1000, 180, -900),
             new THREE.Vector3(0, 0, 0),
             new THREE.Vector3(100, 0, 100),
             new THREE.Vector3(300, 0, 300),
@@ -100,6 +100,9 @@ export class Car extends EventTarget {
             this.dispatchEvent(new CustomEvent('closest_point-change', {
                 detail: this.closestPointToCurve
             }))
+            if (this.closestPointToCurve.distance > 100) {
+                this.vehicle.chassisBody.position.copy(this.closestPointToCurve.point)
+            }
 
             for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
                 this.vehicle.updateWheelTransform(i)
