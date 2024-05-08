@@ -1,40 +1,59 @@
 import * as CANNON from "cannon-es";
 import Engine from "../Engine.js";
 import {useCannonContext} from "../useCannonContext.js";
+import CurveFinder from "../../maths/CurveFinder.js";
+import * as THREE from "three";
 const { world } = useCannonContext()
 
-export class Car {
+export class Car extends EventTarget {
 
     constructor() {
+        super();
+
+
+        this.curvePoints = [
+            new THREE.Vector3(1000, 0, -900),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(100, 0, 100),
+            new THREE.Vector3(300, 0, 300),
+            new THREE.Vector3(500, 0, 500),
+            new THREE.Vector3(-100, 0, -100),
+        ]
+        this.curveFinder = new CurveFinder(CurveFinder.TYPES.BRUTE_FORCE)
+
         this.shape = new CANNON.Box(new CANNON.Vec3(3.5, 1.5, 2))
         this.body = new CANNON.Body({
             mass: 1000,
             shape: this.shape
         })
-        this.body.position.y = 125
-        this.body.position.z += 20
+        // this.body.position.y = 125
+        // this.body.position.z += 20
 
         this.vehicle = new CANNON.RaycastVehicle({
             chassisBody: this.body
         })
         this.vehicle.addToWorld(world)
 
+        this.currentSpeedInt = 0
+        this.lastCurrentSpeedInt = 0
+
         this.wheels = []
         const wheelOptions = {
-            radius: 0.5,
+            radius: .5,
             directionLocal: new CANNON.Vec3(0, -1, 0),
-            suspensionStiffness: 30,
-            suspensionRestLength: 0.3,
-            frictionSlip: 1.4,
-            dampingRelaxation: 2.3,
-            dampingCompression: 4.4,
-            maxSuspensionForce: 100000,
-            rollInfluence: 0.01,
             axleLocal: new CANNON.Vec3(0, 0, 1),
             chassisConnectionPointLocal: new CANNON.Vec3(-1, 0, 1),
-            maxSuspensionTravel: 0.3,
-            customSlidingRotationalSpeed: -30,
+            suspensionStiffness: 40,
+            suspensionDamping: 3,
+            suspensionRestLength: .5,
+            frictionSlip: 1, // doit être en fonction de la vitesse actuelle
+            dampingRelaxation: 2,
+            dampingCompression: 5,
+            maxSuspensionForce: 100000,
+            rollInfluence: 0.001,
+            maxSuspensionTravel: 0.5,
             useCustomSlidingRotationalSpeed: true,
+            customSlidingRotationalSpeed: -5,
         }
 
         wheelOptions.chassisConnectionPointLocal.set(-this.shape.halfExtents.x, -this.shape.halfExtents.y, this.shape.halfExtents.z)
@@ -65,6 +84,23 @@ export class Car {
 
         // Update the wheel bodies
         world.addEventListener('postStep', () => {
+
+            this.currentSpeedInt = Math.round(this.vehicle.currentVehicleSpeedKmHour)
+            if (this.lastCurrentSpeedInt !== this.currentSpeedInt) {
+                this.dispatchEvent(new CustomEvent('speed-change', {
+                    detail: this.currentSpeedInt
+                }))
+                this.lastCurrentSpeedInt = this.currentSpeedInt
+            }
+            this.dispatchEvent(new CustomEvent('position-change', {
+                detail: this.vehicle.chassisBody.position.clone()
+            }))
+
+            this.closestPointToCurve = this.curveFinder.getClosestPoint(this.curvePoints, this.vehicle.chassisBody.position)
+            this.dispatchEvent(new CustomEvent('closest_point-change', {
+                detail: this.closestPointToCurve
+            }))
+
             for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
                 this.vehicle.updateWheelTransform(i)
                 const transform = this.vehicle.wheelInfos[i].worldTransform
@@ -91,10 +127,8 @@ export class Car {
         document.addEventListener('keydown', (event) => {
             const maxSteerVal = .6
             const maxForce = 5000
-            const brakeForce = 1000000
-
-            console.log(this.vehicle.currentVehicleSpeedKmHour)
-            console.log(this.vehicle.constraints)
+            const brakeForce = 200
+            const parkingBrakeForce = 1000000
 
             switch (event.key) {
                 case 'z':
@@ -105,8 +139,14 @@ export class Car {
 
                 case 's':
                 case 'ArrowDown':
-                    this.vehicle.applyEngineForce(maxForce, 2)
-                    this.vehicle.applyEngineForce(maxForce, 3)
+                    this.vehicle.setBrake(brakeForce/2, 0)
+                    this.vehicle.setBrake(brakeForce/2, 1)
+                    this.vehicle.setBrake(brakeForce, 2)
+                    this.vehicle.setBrake(brakeForce, 3)
+                    // this.vehicle.applyEngineForce(maxForce, 1)
+                    // this.vehicle.applyEngineForce(maxForce, 2)
+                    // this.vehicle.applyEngineForce(maxForce, 3)
+                    // this.vehicle.applyEngineForce(maxForce, 4)
                     break
 
                 case 'q':
@@ -124,8 +164,8 @@ export class Car {
                 case ' ':
                     // this.vehicle.setBrake(brakeForce, 0)
                     // this.vehicle.setBrake(brakeForce, 1)
-                    this.vehicle.setBrake(brakeForce, 2)
-                    this.vehicle.setBrake(brakeForce, 3)
+                    this.vehicle.setBrake(parkingBrakeForce, 2)
+                    this.vehicle.setBrake(parkingBrakeForce, 3)
                     break
             }
         })
@@ -141,8 +181,14 @@ export class Car {
 
                 case 's':
                 case 'ArrowDown':
-                    this.vehicle.applyEngineForce(0, 2)
-                    this.vehicle.applyEngineForce(0, 3)
+                    this.vehicle.setBrake(0, 0)
+                    this.vehicle.setBrake(0, 1)
+                    this.vehicle.setBrake(0, 2)
+                    this.vehicle.setBrake(0, 3)
+                    // this.vehicle.applyEngineForce(0, 0)
+                    // this.vehicle.applyEngineForce(0, 1)
+                    // this.vehicle.applyEngineForce(0, 2)
+                    // this.vehicle.applyEngineForce(0, 3)
                     break
 
                 case 'q':
@@ -165,57 +211,5 @@ export class Car {
                     break
             }
         })
-
-        // this.createWheels()
-    }
-
-    createWheels() {
-        const wheelHeight = -1.5
-
-        for (let i = 0; i < 25; i++) {
-            const geometry = new CANNON.Sphere(1)
-            const body = new CANNON.Body({shape: geometry, mass: 1})
-            body.position.x = i + 25
-            body.position.y = 300
-            world.addBody(body)
-        }
-
-        for (let i = 0; i < 4; i++) {
-            const wheelPosition = new CANNON.Vec3()
-            let enableMotor = false
-
-            if (i === 0) {
-                wheelPosition.set(-this.shape.halfExtents.x, wheelHeight, -this.shape.halfExtents.z)
-                enableMotor = true
-            }
-            if (i === 1) {
-                wheelPosition.set(-this.shape.halfExtents.x, wheelHeight, this.shape.halfExtents.z)
-                enableMotor = true
-            }
-            if (i === 2) {
-                wheelPosition.set(this.shape.halfExtents.x, wheelHeight, -this.shape.halfExtents.z)
-            }
-            if (i === 3) {
-                wheelPosition.set(this.shape.halfExtents.x, wheelHeight, this.shape.halfExtents.z)
-            }
-
-            this.wheels.push(new Wheel({
-                config: {
-                    enableMotor: enableMotor,
-                    wheelPosition: wheelPosition
-                },
-                car: this
-            }))
-        }
-    }
-
-    update(acceleration, rotation, gear) {
-        this.engine.shiftGear(gear)
-        this.engine.update(acceleration)
-
-
-        for (const wheel of this.wheels) {
-            wheel.update(this.engine.currentMotorForce, rotation)
-        }
     }
 }

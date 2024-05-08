@@ -6,6 +6,7 @@ import {useCar} from "../composable/useCar.js";
 import {computed, onMounted, toRaw} from "vue";
 import {useGamepad} from "@vueuse/core";
 import * as CANNON from "cannon-es";
+import * as THREE from "three";
 
 const { gamepads, onConnected } = useGamepad()
 onConnected((gamepadIndex) => {
@@ -47,14 +48,10 @@ const gear = computed(() => {
 })
 
 const { scene, camera, controls } = useTresContext()
+
 const { onLoop } = useRenderLoop()
 const { world } = useCannonContext()
-// const { car } = useCar()
-
-
-
-onLoop(() => {
-})
+const { car } = useCar()
 
 const zqsdPad = {
 	z: -1,
@@ -62,6 +59,10 @@ const zqsdPad = {
 	s: -1,
 	d: -1,
 }
+
+onLoop(() => {
+
+})
 
 onMounted(() => {
 	window.addEventListener('keydown', (e) => {
@@ -88,6 +89,7 @@ onMounted(() => {
 </template>
 
 <style>
+
 #gamepad {
   z-index: 1500;
 }

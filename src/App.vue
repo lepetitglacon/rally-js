@@ -5,6 +5,7 @@ import OrbitControls from "./components/OrbitControls.vue";
 import Car from "./components/Car.vue";
 import Map from "./components/Map.vue";
 import CannonWorld from "./components/cannon/CannonWorld.vue";
+import CarUI from "./components/CarUI.vue";
 
 </script>
 
@@ -13,7 +14,7 @@ import CannonWorld from "./components/cannon/CannonWorld.vue";
 
   <TresCanvas shadows window-size :output-encoding="SRGBColorSpace" clear-color="#82DBC5">
     <TresPerspectiveCamera
-        :args="[45, 1, 0.1, 10000]"
+        :args="[45, 1, 0.1, 1000]"
         :position="[50, 140, 50]"
         :look-at="[0, 120, 0]"
     />
@@ -30,6 +31,9 @@ import CannonWorld from "./components/cannon/CannonWorld.vue";
       <Car/>
     </Suspense>
   </TresCanvas>
+
+	<CarUI/>
+
 
 </template>
 

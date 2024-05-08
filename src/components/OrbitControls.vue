@@ -19,8 +19,8 @@ onLoop(() => {
 	camera.value.getWorldDirection(cameraDirection)
 
 	camera.value.position.copy(car.body.position)
-	camera.value.position.y += 2.5
-	camera.value.position.sub(cameraDirection.multiplyScalar(10))
+	// camera.value.position.y += 4
+	// camera.value.position.sub(cameraDirection.multiplyScalar(20))
 	camera.value.quaternion.copy(car.body.quaternion.mult(camera.value.quaternion.setFromAxisAngle(yVector, Math.PI/2)))
 })
 </script>

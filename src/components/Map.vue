@@ -1,5 +1,5 @@
 <script async setup>
-import { useLoader, useRenderLoop } from '@tresjs/core'
+import {useLoader, useRenderLoop, useTresContext} from '@tresjs/core'
 import {BufferGeometry, TextureLoader} from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader'
 import { threeToCannon, ShapeType } from 'three-to-cannon';
@@ -8,18 +8,47 @@ import * as THREE from "three";
 import {useCannonContext} from "../composable/useCannonContext.js";
 import {onMounted} from "vue";
 const { onLoop } = useRenderLoop()
+const { car } = useCar()
 
 import heightmap_json from '../assets/heightmap/heightmap_min.json'
 // import heightmap_json from '../assets/heightmap/heightmap.json'
 import textureImage from '../assets/heightmap/heightmap-low.png'
+import {useCar} from "../composable/useCar.js";
 
-const texture = await useLoader(TextureLoader, '/assets/heightmap/heightmap.png')
-const map = await useLoader(TextureLoader, '/assets/heightmap/map.png')
-// const { scene } = await useLoader(GLTFLoader, '/assets/models/map.glb')
+// const texture = await useLoader(TextureLoader, '/assets/heightmap/heightmap.png')
+// const map = await useLoader(TextureLoader, '/assets/heightmap/map.png')
 const { world } = useCannonContext()
+const { scene } = useTresContext()
 
-const sceneOffset = -239
-// scene.position.y = sceneOffset
+async function loadMap() {
+	const { scene } = await useLoader(GLTFLoader, '/assets/models/map.glb')
+	return scene
+}
+const map = await loadMap()
+scene.value.map = map
+
+const mapOffset = -239
+map.position.y = mapOffset
+
+map.traverse(obj => {
+	if (obj.material) {
+		obj.material.side = THREE.FrontSide
+	}
+
+	switch (obj.userData.type) {
+		case 'Start': {
+			car.body.position.copy(obj.position)
+			car.body.position.y += -239
+			break;
+		}
+		case 'Road': {
+			console.log(obj)
+			break;
+		}
+	}
+})
+
+
 
 
 const emptyChunk = []
@@ -42,5 +71,5 @@ world.addBody(heightfieldBody)
 
 
 <template>
-<!--  <primitive :object="scene"/>-->
+  <primitive :object="map"/>
 </template>
