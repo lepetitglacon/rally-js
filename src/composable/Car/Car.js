@@ -3,17 +3,19 @@ import Engine from "../Engine.js";
 import {useCannonContext} from "../useCannonContext.js";
 import CurveFinder from "../../maths/CurveFinder.js";
 import * as THREE from "three";
+import {useGameEngine} from "../useGameEngine.js";
 const { world } = useCannonContext()
+const { gameEngine } = useGameEngine()
 
 export class Car extends EventTarget {
 
     constructor() {
         super();
 
-
+        // TODO faire la vraie curve
         this.curvePoints = [
-            new THREE.Vector3(1000, 180, -900),
-            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(970, 100, -900),
+            new THREE.Vector3(900, 0, -900),
             new THREE.Vector3(100, 0, 100),
             new THREE.Vector3(300, 0, 300),
             new THREE.Vector3(500, 0, 500),
@@ -26,8 +28,6 @@ export class Car extends EventTarget {
             mass: 1000,
             shape: this.shape
         })
-        // this.body.position.y = 125
-        // this.body.position.z += 20
 
         this.vehicle = new CANNON.RaycastVehicle({
             chassisBody: this.body
@@ -36,6 +36,8 @@ export class Car extends EventTarget {
 
         this.currentSpeedInt = 0
         this.lastCurrentSpeedInt = 0
+
+        this.parkingBrakeForce = 1000
 
         this.wheels = []
         const wheelOptions = {
@@ -82,6 +84,11 @@ export class Car extends EventTarget {
             world.addBody(wheelBody)
         })
 
+        this.vehicle.setBrake(this.parkingBrakeForce, 0)
+        this.vehicle.setBrake(this.parkingBrakeForce, 1)
+        this.vehicle.setBrake(this.parkingBrakeForce, 2)
+        this.vehicle.setBrake(this.parkingBrakeForce, 3)
+
         // Update the wheel bodies
         world.addEventListener('postStep', () => {
 
@@ -100,7 +107,10 @@ export class Car extends EventTarget {
             this.dispatchEvent(new CustomEvent('closest_point-change', {
                 detail: this.closestPointToCurve
             }))
-            if (this.closestPointToCurve.distance > 100) {
+            if ( // remettre en place la voiture si trop loin de la curve
+                this.closestPointToCurve.distance > 100 &&
+                gameEngine.running
+            ) {
                 this.vehicle.chassisBody.position.copy(this.closestPointToCurve.point)
             }
 
@@ -128,10 +138,12 @@ export class Car extends EventTarget {
         })
 
         document.addEventListener('keydown', (event) => {
+            if (!gameEngine.running) return;
+
             const maxSteerVal = .6
             const maxForce = 5000
             const brakeForce = 200
-            const parkingBrakeForce = 1000000
+            
 
             switch (event.key) {
                 case 'z':
@@ -167,14 +179,16 @@ export class Car extends EventTarget {
                 case ' ':
                     // this.vehicle.setBrake(brakeForce, 0)
                     // this.vehicle.setBrake(brakeForce, 1)
-                    this.vehicle.setBrake(parkingBrakeForce, 2)
-                    this.vehicle.setBrake(parkingBrakeForce, 3)
+                    this.vehicle.setBrake(this.parkingBrakeForce, 2)
+                    this.vehicle.setBrake(this.parkingBrakeForce, 3)
                     break
             }
         })
 
         // Reset force on keyup
         document.addEventListener('keyup', (event) => {
+            if (!gameEngine.running) return;
+
             switch (event.key) {
                 case 'z':
                 case 'ArrowUp':

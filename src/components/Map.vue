@@ -7,13 +7,15 @@ import * as CANNON from "cannon-es";
 import * as THREE from "three";
 import {useCannonContext} from "../composable/useCannonContext.js";
 import {onMounted} from "vue";
+import {useCar} from "../composable/useCar.js";
+import {useGameEngine} from "../composable/useGameEngine.js";
 const { onLoop } = useRenderLoop()
 const { car } = useCar()
+const { gameEngine } = useGameEngine()
 
 import heightmap_json from '../assets/heightmap/heightmap_min.json'
 // import heightmap_json from '../assets/heightmap/heightmap.json'
 import textureImage from '../assets/heightmap/heightmap-low.png'
-import {useCar} from "../composable/useCar.js";
 
 // const texture = await useLoader(TextureLoader, '/assets/heightmap/heightmap.png')
 // const map = await useLoader(TextureLoader, '/assets/heightmap/map.png')
@@ -38,7 +40,8 @@ map.traverse(obj => {
 	switch (obj.userData.type) {
 		case 'Start': {
 			car.body.position.copy(obj.position)
-			car.body.position.y += -239
+			car.body.position.y += mapOffset
+			gameEngine.dispatchEvent(new CustomEvent('runinit/car/inposition'))
 			break;
 		}
 		case 'Road': {
@@ -66,6 +69,7 @@ heightfieldBody.position.x -= heightmap_json.length / 2 - 20
 heightfieldBody.position.z += heightmap_json[0].length / 2 - 115
 heightfieldBody.shapeOrientations[0].setFromEuler(-Math.PI/2, 0, 0)
 world.addBody(heightfieldBody)
+gameEngine.dispatchEvent(new CustomEvent('runinit/map/world/loaded'))
 
 </script>
 
