@@ -8,23 +8,13 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  },
   "dependencies": {
-    "@injectit/threejs-nodejs-exporters": "^0.0.2",
-    "@tresjs/core": "^3.8.1",
-    "@vueuse/core": "^10.9.0",
     "cannon-es": "^0.20.0",
     "cannon-es-debugger": "^1.0.0",
-    "three": "^0.163.0",
-    "pinia": "^2.1.7",
-    "three-mesh-bvh": "^0.7.4",
-    "three-to-cannon": "^5.0.1",
-    "uglify-js": "^3.17.4",
-    "vue": "^3.4.21",
-    "vue-speedometer": "^3.0.1",
-    "vuex": "^4.0.2"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "vite": "^5.2.0"
+    "three": "^0.164.1",
+    "vite-plugin-html": "^3.2.2"
   }
 }
