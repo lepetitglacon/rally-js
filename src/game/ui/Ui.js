@@ -7,20 +7,21 @@ export default class Ui {
 
     constructor({engine}) {
         this.engine = engine
-        this.htmlLoader = ''
     }
 
     init() {
-        this.rootDiv = document.getElementById('app')
-
-        this.menu = document.createElement('div')
-        this.menu.innerHTML = menu
-
-        this.innerMenu = document.createElement('div')
-
         this.menuTemplates = {
             'play': playMenuTemplate
         }
+
+        this.rootDiv = document.getElementById('app')
+        this.menu = document.createElement('div')
+        this.innerMenu = document.createElement('div')
+        this.gameDiv = document.createElement('div')
+
+        this.menu.innerHTML = menu
+
+
 
         this.rootDiv.style.background = '#663377'
         this.rootDiv.style.width = '100vw'
@@ -50,8 +51,8 @@ export default class Ui {
                     new CustomEvent('user-input/start-game',
                         {
                             detail: {
-                                stage: this.selectedStage,
-                                car: this.selectedCar
+                                stage: this.selectedStage ?? 'france-besancon-bregille',
+                                car: this.selectedCar ?? 'clio 3'
                             }
                         })
                 )
@@ -62,6 +63,10 @@ export default class Ui {
 
         }
 
+    }
+
+    remove() {
+        this.rootDiv.innerHTML = ''
     }
 
     bind() {

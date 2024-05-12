@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {OrbitControls} from "three/addons";
 
 export default class Three {
 
@@ -7,29 +8,38 @@ export default class Three {
     }
 
     init() {
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
 
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        document.body.appendChild( renderer.domElement );
+        this.renderer = new THREE.WebGLRenderer();
+        this.renderer.setSize( window.innerWidth, window.innerHeight );
+        this.engine.ui.gameDiv.appendChild( this.renderer.domElement );
+        this.engine.ui.rootDiv.appendChild(this.engine.ui.gameDiv);
+
+        this.camera.position.z = 5
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 
         const geometry = new THREE.BoxGeometry( 1, 1, 1 );
         const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
         const cube = new THREE.Mesh( geometry, material );
-        scene.add( cube );
+        this.scene.add( cube );
 
-        camera.position.z = 5;
 
-        function animate() {
-            requestAnimationFrame( animate );
+        this.ambiantLight = new THREE.AmbientLight( 0xFFFFFF ); // soft white light
+        this.scene.add( this.ambiantLight );
 
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+        this.animate();
+    }
+    
+    animate() {
+        requestAnimationFrame( () => this.animate() );
+        this.engine.dispatchEvent(new CustomEvent('three/render/beforeAnimate'))
 
-            renderer.render( scene, camera );
-        }
+        this.controls.update()
 
-        animate();
+        this.engine.dispatchEvent(new CustomEvent('three/render/animate'))
+
+        this.renderer.render( this.scene, this.camera );
+        this.engine.dispatchEvent(new CustomEvent('three/render/afterAnimate'))
     }
 }
