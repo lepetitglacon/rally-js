@@ -28,18 +28,26 @@ export default class Three {
         this.ambiantLight = new THREE.AmbientLight( 0xFFFFFF ); // soft white light
         this.scene.add( this.ambiantLight );
 
+        this.clock = new THREE.Clock()
+        this.targetFPS = 60;
+        this.targetFrameTime = 1 / this.targetFPS;
         this.animate();
     }
     
     animate() {
         requestAnimationFrame( () => this.animate() );
-        this.engine.dispatchEvent(new CustomEvent('three/render/beforeAnimate'))
+        if (this.clock.getElapsedTime() >= this.targetFrameTime) {
+            this.clock.start()
 
-        this.controls.update()
+            this.engine.dispatchEvent(new CustomEvent('three/render/beforeAnimate'))
 
-        this.engine.dispatchEvent(new CustomEvent('three/render/animate'))
+            this.controls.update()
 
-        this.renderer.render( this.scene, this.camera );
-        this.engine.dispatchEvent(new CustomEvent('three/render/afterAnimate'))
+            this.engine.dispatchEvent(new CustomEvent('three/render/animate'))
+
+            this.renderer.render( this.scene, this.camera );
+            this.engine.dispatchEvent(new CustomEvent('three/render/afterAnimate'))
+            this.ellapsedTime = 0
+        }
     }
 }

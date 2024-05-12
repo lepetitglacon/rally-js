@@ -40,7 +40,6 @@ export default class GameEngine extends EventTarget{
 
 
         this.car = this.carFactory.getCar(car)
-
-
+        this.car.addToWorld(this.three.scene, this.cannon.world)
     }
 }
