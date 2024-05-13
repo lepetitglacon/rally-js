@@ -1,6 +1,6 @@
 import Wordable from "../interfaces/Wordable.js";
+import * as THREE from "three";
 import * as CANNON from "cannon-es";
-import scene from "three/addons/offscreen/scene.js";
 
 export default class Car extends Wordable {
 
@@ -26,6 +26,8 @@ export default class Car extends Wordable {
         this.vehicle = new CANNON.RaycastVehicle({
             chassisBody: this.body
         })
+        this.meshGeometry = new THREE.BoxGeometry(this.bodyShape.halfExtents.x*2, this.bodyShape.halfExtents.y*2, this.bodyShape.halfExtents.z*2)
+        this.mesh = new THREE.Mesh(this.meshGeometry, this.meshMaterial)
     }
 
     addWheels() {
@@ -36,10 +38,10 @@ export default class Car extends Wordable {
             directionLocal: new CANNON.Vec3(0, -1, 0),
             axleLocal: new CANNON.Vec3(0, 0, 1),
             chassisConnectionPointLocal: new CANNON.Vec3(-1, 0, 1),
-            suspensionStiffness: 40,
-            suspensionDamping: 3,
-            suspensionRestLength: .5,
-            frictionSlip: 1, // doit être en fonction de la vitesse actuelle
+            suspensionStiffness: 6.5,
+            suspensionDamping: 1,
+            suspensionRestLength: 1,
+            frictionSlip: 4, // doit être en fonction de la vitesse actuelle
             dampingRelaxation: 2,
             dampingCompression: 5,
             maxSuspensionForce: 100000,
@@ -48,6 +50,23 @@ export default class Car extends Wordable {
             useCustomSlidingRotationalSpeed: true,
             customSlidingRotationalSpeed: -5,
         }
+        // const wheelOptions = {
+        //     radius: .5,
+        //     directionLocal: new CANNON.Vec3(0, -1, 0),
+        //     axleLocal: new CANNON.Vec3(0, 0, 1),
+        //     chassisConnectionPointLocal: new CANNON.Vec3(-1, 0, 1),
+        //     suspensionStiffness: 40,
+        //     suspensionDamping: 3,
+        //     suspensionRestLength: .5,
+        //     frictionSlip: 5, // doit être en fonction de la vitesse actuelle
+        //     dampingRelaxation: 2,
+        //     dampingCompression: 5,
+        //     maxSuspensionForce: 100000,
+        //     rollInfluence: 0.001,
+        //     maxSuspensionTravel: 0.5,
+        //     useCustomSlidingRotationalSpeed: true,
+        //     customSlidingRotationalSpeed: -5,
+        // }
 
         wheelOptions.chassisConnectionPointLocal.set(-this.bodyShape.halfExtents.x, -this.bodyShape.halfExtents.y, this.bodyShape.halfExtents.z)
         this.vehicle.addWheel(wheelOptions)
@@ -81,9 +100,25 @@ export default class Car extends Wordable {
     }
 
     bind() {
+        super.bind()
+        this.engine.three.controls.enabled = false
+
+        this.cameraQuaternionRotation = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI/2)
+        this.bodyDirection = new THREE.Vector3()
+        this.idealPosition = new THREE.Vector3()
 
         this.engine.addEventListener('three/render/animate', e => {
-            this.engine.three.controls.target.copy(this.body.position)
+            // this.engine.three.camera.quaternion.copy(this.body.quaternion.clone().mult(this.cameraQuaternionRotation))
+            this.mesh.getWorldDirection(this.bodyDirection)
+
+            this.idealPosition.copy(this.body.position)
+            this.idealPosition.add(this.bodyDirection.applyAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI/2))
+            this.idealPosition.addScalar(2)
+            this.idealPosition.y += 3.5
+
+            this.engine.three.camera.position.lerp(this.idealPosition, 0.1)
+            this.idealPosition.sub(this.bodyDirection.addScalar(2))
+            this.engine.three.camera.lookAt(this.idealPosition)
         })
 
         document.addEventListener('keydown', (event) => {

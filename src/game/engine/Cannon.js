@@ -9,7 +9,9 @@ export default class Cannon {
     }
 
     init() {
-        this.world = new CANNON.World()
+        this.world = new CANNON.World({
+            gravity: new CANNON.Vec3(0, -9.8, 0)
+        })
         this.debugger = new cannonDebugger(this.engine.three.scene, this.world)
         this.bind()
     }
