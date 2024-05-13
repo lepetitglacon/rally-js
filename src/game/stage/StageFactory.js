@@ -12,9 +12,18 @@ export default class StageFactory {
         this.engine = engine;
         this.gltfLoader = new GLTFLoader();
         this.cubeTextureLoader = new THREE.CubeTextureLoader();
+
+        this.buildingMaterial = new THREE.MeshStandardMaterial()
     }
 
+    /**
+     *
+     * @param mapName
+     * @param options
+     * @returns {Promise<Stage>}
+     */
     async getStage(mapName, options = {}) {
+        const stage = new Stage({engine: this.engine});
 
         // MODEL
         const gltf = await this.gltfLoader.loadAsync(
@@ -23,13 +32,23 @@ export default class StageFactory {
                 console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
             }
         )
+        gltf.scene.position.y += StageFactory.STAGE_OFFSET * 2 + 11
         gltf.scene.traverse((object) => {
             if (object.material) {
                 object.material.side = THREE.FrontSide
+                if (object.userData.type !== 'Terrain' && object.userData.type !== 'Road') {
+                    object.material = this.buildingMaterial
+                }
+            }
+            if (object.userData.type === 'Start') {
+                stage.startingPoints.push(object.position.clone())
+                stage.startingPoints[stage.startingPoints.length - 1].y += StageFactory.STAGE_OFFSET * 2 + 11
+                console.log('start point found')
+            }
+            if (object.userData.type === 'Road') {
+                object.visible = false
             }
         })
-        gltf.scene.position.y += StageFactory.STAGE_OFFSET * 2 + 11
-
         console.log('model ok')
 
         // HEIGHTMAP
@@ -54,10 +73,9 @@ export default class StageFactory {
         this.engine.three.scene.background = this.stageSkybox
         console.log('skybox ok')
 
-        const stage = new Stage({
-            mesh: gltf.scene,
-            body: heightmap
-        });
+        stage.mesh = gltf.scene
+        stage.body = heightmap
+
         return stage
     }
 

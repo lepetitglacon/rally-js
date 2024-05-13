@@ -4,6 +4,8 @@ import * as CANNON from 'cannon-es';
 export default class Wordable {
 
     constructor(options = {}) {
+        this.engine = options.engine;
+
         this.meshGeometry = options.geometry ?? new THREE.BoxGeometry(1)
         this.meshMaterial = options.meshMaterial ?? new THREE.MeshPhongMaterial()
         this.mesh = options.mesh ?? new THREE.Mesh(this.meshGeometry, this.meshMaterial)
@@ -12,8 +14,17 @@ export default class Wordable {
         this.bodyMaterial = options.meshMaterial ?? new THREE.MeshPhongMaterial()
         this.body = options.body ?? new CANNON.Body({
             shape: this.bodyShape,
-            mass: options.bodyMass,
+            mass: options.bodyMass ?? 0,
             material: options.bodyMaterial
+        })
+
+        this.bind()
+    }
+
+    bind() {
+        this.engine.addEventListener('three/render/animate', e => {
+            this.mesh.position.copy(this.body.position)
+            this.mesh.quaternion.copy(this.body.quaternion)
         })
     }
 

@@ -13,8 +13,6 @@ export default class Three {
 
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setSize( window.innerWidth, window.innerHeight );
-        this.engine.ui.gameDiv.appendChild( this.renderer.domElement );
-        this.engine.ui.rootDiv.appendChild(this.engine.ui.gameDiv);
 
         this.camera.position.z = 5
         this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -39,15 +37,14 @@ export default class Three {
         if (this.clock.getElapsedTime() >= this.targetFrameTime) {
             this.clock.start()
 
-            this.engine.dispatchEvent(new CustomEvent('three/render/beforeAnimate'))
-
             this.controls.update()
+
+            this.engine.dispatchEvent(new CustomEvent('three/render/beforeAnimate'))
 
             this.engine.dispatchEvent(new CustomEvent('three/render/animate'))
 
-            this.renderer.render( this.scene, this.camera );
             this.engine.dispatchEvent(new CustomEvent('three/render/afterAnimate'))
-            this.ellapsedTime = 0
+            this.renderer.render( this.scene, this.camera );
         }
     }
 }

@@ -5,6 +5,10 @@ export default class Stage extends Wordable {
     constructor(options) {
         super(options);
 
+        this.startingPoints = []
+    }
+
+    bind() {
 
     }
 
