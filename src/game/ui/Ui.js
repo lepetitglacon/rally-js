@@ -19,12 +19,17 @@ export default class Ui {
     }
 
     init() {
+        this.bind()
 
         this.rootDiv = document.getElementById('app')
         this.menu = document.createElement('div')
         this.innerMenu = document.createElement('div')
         this.gameDiv = document.createElement('div')
         this.loadingDiv = document.createElement('div')
+
+        this.debugDiv = document.createElement('div')
+        this.debugDiv.classList.add('debug-div')
+        this.debugInfos = {}
 
         this.loadingDiv.innerHTML = this.loaderTemplates[0]
         this.hideLoader()
@@ -41,6 +46,7 @@ export default class Ui {
         this.rootDiv.appendChild(this.menu)
         this.rootDiv.appendChild(this.innerMenu)
         this.rootDiv.appendChild(this.loadingDiv)
+        this.rootDiv.appendChild(this.debugDiv)
         this.parseTemplateButtons()
     }
 
@@ -91,8 +97,13 @@ export default class Ui {
     }
 
     bind() {
-        this.engine.addEventListener('', e => {
-
+        this.engine.addEventListener('three/render/animate', e => {
+            for (const [key, value] of Object.entries(this.debugInfos)) {
+                const p = document.getElementById('debug-' + key) ?? document.createElement('p')
+                p.id = 'debug-' + key
+                p.innerText = value
+                this.debugDiv.appendChild(p)
+            }
         })
     }
 }

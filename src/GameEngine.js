@@ -3,6 +3,7 @@ import Cannon from "./game/engine/Cannon.js";
 import Ui from "./game/ui/Ui.js";
 import StageFactory from "./game/stage/StageFactory.js";
 import CarFactory from "./game/car/CarFactory.js";
+import ZQSDInput from "./game/inputs/ZQSDInput.js";
 
 export default class GameEngine extends EventTarget{
 
@@ -13,6 +14,8 @@ export default class GameEngine extends EventTarget{
         this.cannon = new Cannon({engine: this})
         this.stageFactory = new StageFactory({engine: this})
         this.carFactory = new CarFactory({engine: this})
+
+        this.zqsdInput = new ZQSDInput({engine: this})
 
         this.bind()
         this.init()
@@ -28,6 +31,8 @@ export default class GameEngine extends EventTarget{
 
     init() {
         this.ui.init()
+        this.zqsdInput.init()
+
         console.log('game initialized')
     }
 
