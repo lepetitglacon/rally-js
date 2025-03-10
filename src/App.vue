@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import subaru from '@/assets/gltf/subaru.glb?url'
-import hdrEnvironment from '@/assets/img/hdr/qwantani_afternoon_4k.exr?url'
+import heightmap from '@/assets/heightmap.png?url'
+import heightmap2 from '@/assets/gltf/france-besancon-bregille.glb?url'
 
 import {onMounted, onUnmounted} from "vue";
 import * as BABYLON from "@babylonjs/core";
 import * as CANNON from "cannon-es";
-import heightmap from '@/assets/heightmap.png?url'
 import {Quaternion} from "@babylonjs/core";
 import type {WheelInfoOptions} from "objects/WheelInfo";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 
 onMounted(async () => {
   const debug = false;
+	const meshDebugger = new BABYLON.PhysicsViewer()
+
   const inputMap = {};
   const wheels: Wheel[] = [];
 
@@ -23,7 +25,7 @@ onMounted(async () => {
   // BG
   // scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrEnvironment, scene, 512);
   scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-  scene.fogDensity = 0.02;
+  scene.fogDensity = 0.002;
   scene.fogColor = new BABYLON.Color3(0.8, 0.8, 0.9);
 
   const gameCamera = new BABYLON.UniversalCamera("gamecamera", new BABYLON.Vector3(10, 2, 0), scene);
@@ -137,8 +139,36 @@ onMounted(async () => {
   transform.position.y -= 1
   // transform.rotation.y -= Math.PI / 2
   const meshes = rootNode.getChildMeshes()
-
   shadowGenerator.addShadowCaster(rootNode)
+
+	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
+	heightMapContainer.meshes[0].position.y -= 100;
+	const entries = heightMapContainer.instantiateModelsToScene()
+	for (const mesh of entries.rootNodes[0].getChildMeshes()) {
+		if (mesh.metadata.gltf.extras.building === 'yes') {
+			console.log(mesh)
+			mesh.physicsImpostor = new BABYLON.PhysicsImpostor(mesh, BABYLON.PhysicsImpostor.BoxImpostor, {
+				mass: 0
+			}, scene)
+			meshDebugger.showImpostor(mesh.physicsImpostor)
+		}
+
+		if (mesh.name === 'Terrain') {
+			console.log(mesh)
+		}
+		if (mesh.name === 'Route') {
+			console.log(mesh)
+			mesh.physicsImpostor = new BABYLON.PhysicsImpostor(mesh, BABYLON.PhysicsImpostor.MeshImpostor, {
+				mass: 0
+			}, scene)
+
+			meshDebugger.showImpostor(mesh.physicsImpostor)
+
+			// const roadPhysics = new BABYLON.PhysicsAggregate(
+			// 	mesh, BABYLON.PhysicsShapeType.HEIGHTFIELD, { mass: 0 }, scene
+			// );
+		}
+	}
 
   const frontLeft = new BABYLON.TransformNode()
   for (const mesh of meshes.filter(m => m.id.includes('Front Left'))) {
