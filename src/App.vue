@@ -11,16 +11,18 @@ import type {WheelInfoOptions} from "objects/WheelInfo";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 import CannonDebugger from '@/lib/cannon-es-debugger-babylonjs/dist/cannon-es-debugger-babylonjs'
 
+const inputMap = {};
+
 onMounted(async () => {
   const debug = false;
 
-  const inputMap = {};
   const wheels: Wheel[] = [];
 
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
   const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
   const scene = new BABYLON.Scene(engine);
   scene.actionManager = new BABYLON.ActionManager(scene);
+  // scene.useRightHandedSystem = true
   const meshDebugger = new BABYLON.PhysicsViewer(scene, 1)
 
 
@@ -106,10 +108,20 @@ onMounted(async () => {
     shape: new CANNON.Vec3(2.5, .5, 1)
   }
   const chassisShape = new CANNON.Box(car.shape);
-  const chassisBody = new CANNON.Body({ mass: 2000 });
+  const chassisBody = new CANNON.Body({ mass: 2000, type: CANNON.BODY_TYPES.STATIC  });
   chassisBody.addShape(chassisShape);
   chassisBody.position.set(0, 2, 0);
+  // chassisBody.position.set(1015, 102, -990);
   world.addBody(chassisBody);
+
+  const chassisMesh = BABYLON.MeshBuilder.CreateBox("chassis", {
+    width: car.shape.x * 2,
+    height: car.shape.y * 2,
+    depth: car.shape.z * 2
+  }, scene);
+  const chassisMat = new BABYLON.StandardMaterial('car', scene)
+  chassisMesh.material = chassisMat
+  chassisMesh.material.alpha = .5
 
   const points1 = [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(10, 0, 0)];
   const line1 = BABYLON.CreateGreasedLine(
@@ -124,16 +136,6 @@ onMounted(async () => {
       scene
   );
 
-  const chassisMesh = BABYLON.MeshBuilder.CreateBox("chassis", {
-    width: car.shape.x * 2,
-    height: car.shape.y * 2,
-    depth: car.shape.z * 2
-  }, scene);
-  const chassisMat = new BABYLON.StandardMaterial('car', scene)
-  chassisMesh.material = chassisMat
-  chassisMesh.material.alpha = .5
-  // gameCamera.parent = chassisMesh
-
   registerBuiltInLoaders()
   const container = await BABYLON.LoadAssetContainerAsync(subaru, scene);
   const model = container.instantiateModelsToScene()
@@ -146,123 +148,19 @@ onMounted(async () => {
   const meshes = rootNode.getChildMeshes()
   // shadowGenerator.addShadowCaster(rootNode)
 
-	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
-	heightMapContainer.meshes[0].position.y -= 100;
-	const entries = heightMapContainer.instantiateModelsToScene()
-	for (const mesh of entries.rootNodes[0].getChildMeshes()) {
-		if (mesh.metadata.gltf.extras.building === 'yes' || mesh.metadata.gltf.extras.building === 'house') {
-			// console.log('building', mesh)
-		}
-		if (mesh.metadata.gltf.extras.type === 'Terrain') {
-			console.log('terrain', mesh)
-
-//       function meshToHeightmap(mesh, resolution = 10) {
-//         let positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-//         let boundingBox = mesh.getBoundingInfo().boundingBox;
-//         let minX = boundingBox.minimum.x;
-//         let maxX = boundingBox.maximum.x;
-//         let minZ = boundingBox.minimum.z;
-//         let maxZ = boundingBox.maximum.z;
-//
-//         let width = maxX - minX;
-//         let depth = maxZ - minZ;
-//         let stepX = width / resolution;
-//         let stepZ = depth / resolution;
-//
-//         let heightMatrix = [];
-//
-//         for (let i = 0; i <= resolution; i++) {
-//           heightMatrix[i] = [];
-//           for (let j = 0; j <= resolution; j++) {
-//             let sampleX = minX + i * stepX;
-//             let sampleZ = minZ + j * stepZ;
-//             let sampleY = getHeightAt(mesh, sampleX, sampleZ, positions);
-//             heightMatrix[i][j] = sampleY;
-//           }
-//         }
-//
-//         return heightMatrix;
-//       }
-//
-// // Helper function to get the height (Y) at a specific X, Z position
-//       function getHeightAt(mesh, x, z, positions) {
-//         let closestY = mesh.position.y; // Default to mesh position if no close vertex found
-//         let closestDistance = Infinity;
-//
-//         for (let i = 0; i < positions.length; i += 3) {
-//           let vx = positions[i];
-//           let vy = positions[i + 1];
-//           let vz = positions[i + 2];
-//
-//           let distance = Math.sqrt((vx - x) ** 2 + (vz - z) ** 2);
-//           if (distance < closestDistance) {
-//             closestDistance = distance;
-//             closestY = vy;
-//           }
-//         }
-//
-//         return closestY;
-//       }
-//
-//       let heightMatrix = meshToHeightmap(mesh, 1000);
-//       console.log(heightMatrix)
-//       let heightfieldShape = new CANNON.Heightfield(heightMatrix, {
-//         elementSize: (mesh.getBoundingInfo().boundingBox.maximum.x - mesh.getBoundingInfo().boundingBox.minimum.x) / heightMatrix.length
-//       });
-//       let heightfieldBody = new CANNON.Body({
-//         mass: 0, // Static terrain
-//         shape: heightfieldShape
-//       });
-//       world.addBody(heightfieldBody)
-//       heightfieldBody.position.set(0, 0, 0)
-
-      const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-      let indices = mesh.getIndices();
-      for (let i = 0; i < indices.length; i += 3) {
-        // Swap the last two indices to reverse the triangle normal
-        let temp = indices[i + 1];
-        indices[i + 1] = indices[i + 2];
-        indices[i + 2] = temp;
-      }
-
-      let transformedPositions = [];
-      let worldMatrix = mesh.getWorldMatrix();
-
-      for (let i = 0; i < vertices.length; i += 3) {
-        let vertex = BABYLON.Vector3.TransformCoordinates(
-            new BABYLON.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]),
-            worldMatrix
-        );
-        transformedPositions.push(vertex.x, vertex.y, vertex.z);
-      }
-
-      const trimeshShape = new CANNON.Trimesh(transformedPositions, indices);
-      const body = new CANNON.Body({
-        mass: 0, // 0 = static object (Trimesh does not work well with dynamic objects)
-        shape: trimeshShape
-      });
-      world.addBody(body)
-		}
-		if (mesh.name === 'Route' || mesh.metadata.gltf.extras.type === 'Road') {
-			console.log('road', mesh)
-		}
-	}
-
+  // models des roues
   const frontLeft = new BABYLON.TransformNode()
   for (const mesh of meshes.filter(m => m.id.includes('Front Left'))) {
     mesh.parent = frontLeft
   }
-
   const frontRight = new BABYLON.TransformNode()
   for (const mesh of meshes.filter(m => m.id.includes('Front Right'))) {
     mesh.parent = frontRight
   }
-
   const backLeft = new BABYLON.TransformNode()
   for (const mesh of meshes.filter(m => m.id.includes('Back Left'))) {
     mesh.parent = backLeft
   }
-
   const backRight = new BABYLON.TransformNode()
   for (const mesh of meshes.filter(m => m.id.includes('Back Right'))) {
     mesh.parent = backRight
@@ -279,6 +177,7 @@ onMounted(async () => {
   const wheelConfig = [
     {
       chassisConnectionPointLocal: new CANNON.Vec3(-xOffset, -0.5, zOffset),
+      isFrontWheel: true,
       model: frontLeft
     }, // Front-left
     {
@@ -287,6 +186,7 @@ onMounted(async () => {
     },  // Rear-left
     {
       chassisConnectionPointLocal: new CANNON.Vec3(-xOffset, -0.5, -zOffset),
+      isFrontWheel: true,
       model: frontRight
     }, // Front-right
     {
@@ -298,6 +198,57 @@ onMounted(async () => {
   for (const config of wheelConfig) {
     wheels.push(new Wheel(config, vehicle, scene))
   }
+
+  /////// MAP
+	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
+	heightMapContainer.meshes[0].position.y -= 100;
+	const entries = heightMapContainer.instantiateModelsToScene()
+	for (const mesh of entries.rootNodes[0].getChildMeshes()) {
+
+    switch (mesh.metadata.gltf.extras.type) {
+      case 'Terrain': {
+        const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        let indices = mesh.getIndices();
+        let transformedPositions = [];
+        let worldMatrix = mesh.getWorldMatrix();
+        // faire pointer les indices (normals) vers le haut
+        for (let i = 0; i < indices.length; i += 3) {
+          // Swap the last two indices to reverse the triangle normal
+          let temp = indices[i + 1];
+          indices[i + 1] = indices[i + 2];
+          indices[i + 2] = temp;
+        }
+        // appliquer la transformation du monde au trimesh pour qu'il corresponde à la mesh
+        // sinon c'est décalé / pas scalé correctement
+        for (let i = 0; i < vertices.length; i += 3) {
+          let vertex = BABYLON.Vector3.TransformCoordinates(
+              new BABYLON.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]),
+              worldMatrix
+          );
+          transformedPositions.push(vertex.x, vertex.y, vertex.z);
+        }
+        const trimeshShape = new CANNON.Trimesh(transformedPositions, indices);
+        const body = new CANNON.Body({
+          mass: 0, // 0 = static object (Trimesh does not work well with dynamic objects)
+          shape: trimeshShape
+        });
+        world.addBody(body)
+        chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
+        break
+      }
+      case 'Road': {
+        mesh.isVisible = false
+        break
+      }
+      case 'Start': {
+        chassisBody.position.copy(mesh.getAbsolutePosition())
+        chassisBody.position.y += 2
+        chassisBody.quaternion.copy(mesh.rotationQuaternion?.invert())
+        // gameCamera.position.copyFrom(mesh.position)
+        break
+      }
+    }
+	}
 
   // Player Controls
   window.addEventListener("keydown", (evt) => inputMap[evt.key] = true);
@@ -319,6 +270,7 @@ onMounted(async () => {
     chassisMesh.material.alpha = debug ? .5 : 0
 
     if (scene.activeCamera === gameCamera) {
+      flyCamera.position.copyFrom(gameCamera.position)
       const forward = getVehicleForwardDirection(chassisBody);
       line1.setDirection(forward)
       line1.position.copyFrom(chassisMesh.position)
@@ -386,6 +338,7 @@ class Wheel {
   private body: CANNON.Body;
   private id: number;
   private debugMesh: BABYLON.Mesh;
+  private baseFriction: number;
 
   static wheelTransformQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0,-1,0), Math.PI / 2)
   static wheelMaterial = new CANNON.Material('wheel')
@@ -410,6 +363,7 @@ class Wheel {
       useWorldNormal: true,
       ...params
     } as WheelInfoOptions
+    this.baseFriction = this.params.frictionSlip
 
     this.mesh = params.model
     this.mesh.setPivotPoint(BABYLON.Vector3.Zero())
@@ -440,11 +394,28 @@ class Wheel {
   update() {
     this.vehicle.updateWheelTransform(this.id);
 
-    const wheelUpdateInfo = this.vehicle.wheelInfos[this.id];
-    const t = wheelUpdateInfo.worldTransform;
+    const wheelInfos = this.vehicle.wheelInfos[this.id];
 
-    this.body.position.copy(t.position)
-    this.body.quaternion.copy(t.quaternion)
+    // update la friction en fonction de la vitesse
+    let speed = this.vehicle.chassisBody.velocity.length();
+    let friction = this.baseFriction * Math.max(0.5, 1 - (speed / 100));
+    friction = Math.max(friction, 0.2);
+    wheelInfos.frictionSlip = friction;
+
+    if (inputMap["z"]) {
+      if (wheelInfos.isFrontWheel) {
+        wheelInfos.frictionSlip = friction - 0.2
+      }
+    }
+    if (inputMap["s"]) {
+      if (wheelInfos.isFrontWheel) {
+        wheelInfos.frictionSlip = this.baseFriction
+      }
+    }
+
+    const worldTransform = wheelInfos.worldTransform;
+    this.body.position.copy(worldTransform.position)
+    this.body.quaternion.copy(worldTransform.quaternion)
 
     this.mesh.position.copyFromFloats(this.body.position.x, this.body.position.y, this.body.position.z);
     this.mesh.rotationQuaternion.copyFromFloats(this.body.quaternion.x, this.body.quaternion.y, this.body.quaternion.z, this.body.quaternion.w)
