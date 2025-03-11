@@ -9,10 +9,10 @@ import * as CANNON from "cannon-es";
 import {Quaternion} from "@babylonjs/core";
 import type {WheelInfoOptions} from "objects/WheelInfo";
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
+import CannonDebugger from '@/lib/cannon-es-debugger-babylonjs/dist/cannon-es-debugger-babylonjs'
 
 onMounted(async () => {
   const debug = false;
-	const meshDebugger = new BABYLON.PhysicsViewer()
 
   const inputMap = {};
   const wheels: Wheel[] = [];
@@ -21,12 +21,14 @@ onMounted(async () => {
   const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
   const scene = new BABYLON.Scene(engine);
   scene.actionManager = new BABYLON.ActionManager(scene);
+  const meshDebugger = new BABYLON.PhysicsViewer(scene, 1)
+
 
   // BG
   // scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrEnvironment, scene, 512);
-  scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-  scene.fogDensity = 0.002;
-  scene.fogColor = new BABYLON.Color3(0.8, 0.8, 0.9);
+  // scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+  // scene.fogDensity = 0.002;
+  // scene.fogColor = new BABYLON.Color3(0.8, 0.8, 0.9);
 
   const gameCamera = new BABYLON.UniversalCamera("gamecamera", new BABYLON.Vector3(10, 2, 0), scene);
   gameCamera.rotation.y -= Math.PI / 2
@@ -62,10 +64,10 @@ onMounted(async () => {
   const hemisphereLight = new BABYLON.HemisphericLight("light",
       new BABYLON.Vector3(0, 1, 0), scene);
   hemisphereLight.intensity = 0.7;
-  const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
-  light.position.y = 50
-  const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
-  shadowGenerator.useContactHardeningShadow = true;
+  // const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+  // light.position.y = 50
+  // const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
+  // shadowGenerator.useContactHardeningShadow = true;
 
   /////// CANNON
   window.CANNON = CANNON
@@ -74,6 +76,8 @@ onMounted(async () => {
 
   const world = scene?.getPhysicsEngine()?.getPhysicsPlugin()?.world as CANNON.World
   world.fixedStep(1/60)
+
+  const cannonDebugger = new CannonDebugger(scene, world);
 
   /////// MAP
   const terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
@@ -89,6 +93,7 @@ onMounted(async () => {
           mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
               mesh, BABYLON.PhysicsImpostor.HeightmapImpostor, { mass: 0 }, scene
           );
+          meshDebugger.showImpostor(mesh.physicsImpostor, mesh)
         },
       },
       scene
@@ -139,34 +144,107 @@ onMounted(async () => {
   transform.position.y -= 1
   // transform.rotation.y -= Math.PI / 2
   const meshes = rootNode.getChildMeshes()
-  shadowGenerator.addShadowCaster(rootNode)
+  // shadowGenerator.addShadowCaster(rootNode)
 
 	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
 	heightMapContainer.meshes[0].position.y -= 100;
 	const entries = heightMapContainer.instantiateModelsToScene()
 	for (const mesh of entries.rootNodes[0].getChildMeshes()) {
-		if (mesh.metadata.gltf.extras.building === 'yes') {
-			console.log(mesh)
-			mesh.physicsImpostor = new BABYLON.PhysicsImpostor(mesh, BABYLON.PhysicsImpostor.BoxImpostor, {
-				mass: 0
-			}, scene)
-			meshDebugger.showImpostor(mesh.physicsImpostor)
+		if (mesh.metadata.gltf.extras.building === 'yes' || mesh.metadata.gltf.extras.building === 'house') {
+			// console.log('building', mesh)
 		}
+		if (mesh.metadata.gltf.extras.type === 'Terrain') {
+			console.log('terrain', mesh)
 
-		if (mesh.name === 'Terrain') {
-			console.log(mesh)
+//       function meshToHeightmap(mesh, resolution = 10) {
+//         let positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+//         let boundingBox = mesh.getBoundingInfo().boundingBox;
+//         let minX = boundingBox.minimum.x;
+//         let maxX = boundingBox.maximum.x;
+//         let minZ = boundingBox.minimum.z;
+//         let maxZ = boundingBox.maximum.z;
+//
+//         let width = maxX - minX;
+//         let depth = maxZ - minZ;
+//         let stepX = width / resolution;
+//         let stepZ = depth / resolution;
+//
+//         let heightMatrix = [];
+//
+//         for (let i = 0; i <= resolution; i++) {
+//           heightMatrix[i] = [];
+//           for (let j = 0; j <= resolution; j++) {
+//             let sampleX = minX + i * stepX;
+//             let sampleZ = minZ + j * stepZ;
+//             let sampleY = getHeightAt(mesh, sampleX, sampleZ, positions);
+//             heightMatrix[i][j] = sampleY;
+//           }
+//         }
+//
+//         return heightMatrix;
+//       }
+//
+// // Helper function to get the height (Y) at a specific X, Z position
+//       function getHeightAt(mesh, x, z, positions) {
+//         let closestY = mesh.position.y; // Default to mesh position if no close vertex found
+//         let closestDistance = Infinity;
+//
+//         for (let i = 0; i < positions.length; i += 3) {
+//           let vx = positions[i];
+//           let vy = positions[i + 1];
+//           let vz = positions[i + 2];
+//
+//           let distance = Math.sqrt((vx - x) ** 2 + (vz - z) ** 2);
+//           if (distance < closestDistance) {
+//             closestDistance = distance;
+//             closestY = vy;
+//           }
+//         }
+//
+//         return closestY;
+//       }
+//
+//       let heightMatrix = meshToHeightmap(mesh, 1000);
+//       console.log(heightMatrix)
+//       let heightfieldShape = new CANNON.Heightfield(heightMatrix, {
+//         elementSize: (mesh.getBoundingInfo().boundingBox.maximum.x - mesh.getBoundingInfo().boundingBox.minimum.x) / heightMatrix.length
+//       });
+//       let heightfieldBody = new CANNON.Body({
+//         mass: 0, // Static terrain
+//         shape: heightfieldShape
+//       });
+//       world.addBody(heightfieldBody)
+//       heightfieldBody.position.set(0, 0, 0)
+
+      const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+      let indices = mesh.getIndices();
+      for (let i = 0; i < indices.length; i += 3) {
+        // Swap the last two indices to reverse the triangle normal
+        let temp = indices[i + 1];
+        indices[i + 1] = indices[i + 2];
+        indices[i + 2] = temp;
+      }
+
+      let transformedPositions = [];
+      let worldMatrix = mesh.getWorldMatrix();
+
+      for (let i = 0; i < vertices.length; i += 3) {
+        let vertex = BABYLON.Vector3.TransformCoordinates(
+            new BABYLON.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]),
+            worldMatrix
+        );
+        transformedPositions.push(vertex.x, vertex.y, vertex.z);
+      }
+
+      const trimeshShape = new CANNON.Trimesh(transformedPositions, indices);
+      const body = new CANNON.Body({
+        mass: 0, // 0 = static object (Trimesh does not work well with dynamic objects)
+        shape: trimeshShape
+      });
+      world.addBody(body)
 		}
-		if (mesh.name === 'Route') {
-			console.log(mesh)
-			mesh.physicsImpostor = new BABYLON.PhysicsImpostor(mesh, BABYLON.PhysicsImpostor.MeshImpostor, {
-				mass: 0
-			}, scene)
-
-			meshDebugger.showImpostor(mesh.physicsImpostor)
-
-			// const roadPhysics = new BABYLON.PhysicsAggregate(
-			// 	mesh, BABYLON.PhysicsShapeType.HEIGHTFIELD, { mass: 0 }, scene
-			// );
+		if (mesh.name === 'Route' || mesh.metadata.gltf.extras.type === 'Road') {
+			console.log('road', mesh)
 		}
 	}
 
@@ -237,6 +315,7 @@ onMounted(async () => {
 
   const speed: number = 10000
   scene.onBeforeRenderObservable.add(() => {
+    cannonDebugger.update()
     chassisMesh.material.alpha = debug ? .5 : 0
 
     if (scene.activeCamera === gameCamera) {
@@ -328,6 +407,7 @@ class Wheel {
       customSlidingRotationalSpeed: -30,
       useCustomSlidingRotationalSpeed: true,
       axleLocal: new CANNON.Vec3(0, 0, 1),
+      useWorldNormal: true,
       ...params
     } as WheelInfoOptions
 
