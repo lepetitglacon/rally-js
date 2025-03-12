@@ -3,6 +3,8 @@ import subaru from '@/assets/gltf/subaru.glb?url'
 import heightmap from '@/assets/heightmap.png?url'
 import heightmap2 from '@/assets/gltf/france-besancon-bregille.glb?url'
 
+import engine_sound from '@/assets/sound/engine.mp3?url'
+
 import {onMounted, onUnmounted} from "vue";
 import * as BABYLON from "@babylonjs/core";
 import * as CANNON from "cannon-es";
@@ -20,6 +22,13 @@ onMounted(async () => {
 
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
   const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+
+	if (!BABYLON.Engine.audioEngine || !BABYLON.Engine.audioEngine.canUseWebAudio) {
+		console.error("Web Audio API is not supported in this browser.");
+	} else {
+		console.log("Web Audio API is available.");
+	}
+
   const scene = new BABYLON.Scene(engine);
   scene.actionManager = new BABYLON.ActionManager(scene);
   // scene.useRightHandedSystem = true
@@ -199,6 +208,22 @@ onMounted(async () => {
     wheels.push(new Wheel(config, vehicle, scene))
   }
 
+	const engineSound = new BABYLON.Sound("engine", engine_sound, scene, () => {
+		console.log("Sound loaded!");
+		engineSound.play()
+	}, {
+		loop: true,
+		autoplay: true,
+		volume: 1
+	});
+  window.addEventListener('click', e => {
+	  if (engineSound.isReady()) {
+		  engineSound.play();
+	  } else {
+		  console.log("Sound is not ready yet!");
+	  }
+  })
+
   /////// MAP
 	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
 	heightMapContainer.meshes[0].position.y -= 100;
@@ -264,10 +289,18 @@ onMounted(async () => {
     return new BABYLON.Vector3(worldForward.x, worldForward.y, worldForward.z);
   }
 
-  const speed: number = 10000
+	let carSpeed = 0; // Example: Replace with actual car speed from physics engine
+	const minPitch = 0.5; // Minimum playback rate
+	const maxPitch = 2.0; // Maximum playback rate
+	const maxSpeed = 200; // Example max speed of the car
+  const motorForce: number = 10000
   scene.onBeforeRenderObservable.add(() => {
     cannonDebugger.update()
     chassisMesh.material.alpha = debug ? .5 : 0
+
+	  carSpeed = vehicle.currentVehicleSpeedKmHour
+	  let pitch = minPitch + (carSpeed / maxSpeed) * (maxPitch - minPitch);
+	  engineSound.setPlaybackRate(pitch);
 
     if (scene.activeCamera === gameCamera) {
       flyCamera.position.copyFrom(gameCamera.position)
@@ -412,6 +445,15 @@ class Wheel {
         wheelInfos.frictionSlip = this.baseFriction
       }
     }
+	  // if (inputMap[" "]) {
+		//   if (!wheelInfos.isFrontWheel) {
+		// 	  this.vehicle.setBrake(5, this.id)
+		//   }
+	  // } else {
+		//   if (!wheelInfos.isFrontWheel) {
+		// 	  this.vehicle.setBrake(0, this.id)
+		//   }
+	  // }
 
     const worldTransform = wheelInfos.worldTransform;
     this.body.position.copy(worldTransform.position)
