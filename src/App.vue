@@ -7,6 +7,7 @@ import engine_sound from '@/assets/sound/engine.mp3?url'
 
 import {onMounted, onUnmounted} from "vue";
 import * as BABYLON from "@babylonjs/core";
+import * as GUI from '@babylonjs/gui'
 import * as CANNON from "cannon-es";
 import {Quaternion} from "@babylonjs/core";
 import type {WheelInfoOptions} from "objects/WheelInfo";
@@ -21,19 +22,49 @@ onMounted(async () => {
   const wheels: Wheel[] = [];
 
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-  const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+  const engine = new BABYLON.Engine(canvas, true, {audioEngine: true}); // Generate the BABYLON 3D engine
 
-	if (!BABYLON.Engine.audioEngine || !BABYLON.Engine.audioEngine.canUseWebAudio) {
-		console.error("Web Audio API is not supported in this browser.");
-	} else {
-		console.log("Web Audio API is available.");
-	}
+  // sound
+  BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
+  window.addEventListener(
+      "click",
+      () => {
+        if (!BABYLON.Engine.audioEngine.unlocked) {
+          BABYLON.Engine.audioEngine.unlock();
+        }
+      },
+      { once: true },
+  );
 
   const scene = new BABYLON.Scene(engine);
   scene.actionManager = new BABYLON.ActionManager(scene);
   // scene.useRightHandedSystem = true
   const meshDebugger = new BABYLON.PhysicsViewer(scene, 1)
 
+
+  // GUI
+  const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+  const panel = new GUI.StackPanel();
+  panel.width = "220px";
+  panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+  panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  advancedTexture.addControl(panel);
+
+  const header = new GUI.TextBlock();
+  header.text = "Throttle";
+  header.height = "30px";
+  header.color = "white";
+  panel.addControl(header);
+
+  const slider = new GUI.Slider();
+  slider.minimum = 0;
+  slider.maximum = 100
+  slider.value = 0;
+  slider.isVertical = true;
+  slider.height = "200px";
+  slider.width = "20px";
+  slider.onValueChangedObservable.add(function(value) {});
+  panel.addControl(slider);
 
   // BG
   // scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrEnvironment, scene, 512);
@@ -91,26 +122,26 @@ onMounted(async () => {
   const cannonDebugger = new CannonDebugger(scene, world);
 
   /////// MAP
-  const terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
-      "terrain",
-      heightmap,
-      {
-        width: 500,
-        height: 500,
-        subdivisions: 200,
-        minHeight: 0,
-        maxHeight: 10,
-        onReady: (mesh) => {
-          mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-              mesh, BABYLON.PhysicsImpostor.HeightmapImpostor, { mass: 0 }, scene
-          );
-          meshDebugger.showImpostor(mesh.physicsImpostor, mesh)
-        },
-      },
-      scene
-  );
-  terrain.position.y -= 5
-  terrain.receiveShadows = true
+  // const terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
+  //     "terrain",
+  //     heightmap,
+  //     {
+  //       width: 500,
+  //       height: 500,
+  //       subdivisions: 200,
+  //       minHeight: 0,
+  //       maxHeight: 10,
+  //       onReady: (mesh) => {
+  //         mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+  //             mesh, BABYLON.PhysicsImpostor.HeightmapImpostor, { mass: 0 }, scene
+  //         );
+  //         meshDebugger.showImpostor(mesh.physicsImpostor, mesh)
+  //       },
+  //     },
+  //     scene
+  // );
+  // terrain.position.y -= 5
+  // terrain.receiveShadows = true
 
   /////// CAR
   const car = {
@@ -120,7 +151,7 @@ onMounted(async () => {
   const chassisBody = new CANNON.Body({ mass: 2000, type: CANNON.BODY_TYPES.STATIC  });
   chassisBody.addShape(chassisShape);
   chassisBody.position.set(0, 2, 0);
-  // chassisBody.position.set(1015, 102, -990);
+  const initialCarQuaternion = chassisBody.quaternion.clone()
   world.addBody(chassisBody);
 
   const chassisMesh = BABYLON.MeshBuilder.CreateBox("chassis", {
@@ -216,15 +247,9 @@ onMounted(async () => {
 		autoplay: true,
 		volume: 1
 	});
-  window.addEventListener('click', e => {
-	  if (engineSound.isReady()) {
-		  engineSound.play();
-	  } else {
-		  console.log("Sound is not ready yet!");
-	  }
-  })
 
   /////// MAP
+  let terrainMesh: BABYLON.Mesh
 	const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
 	heightMapContainer.meshes[0].position.y -= 100;
 	const entries = heightMapContainer.instantiateModelsToScene()
@@ -232,6 +257,7 @@ onMounted(async () => {
 
     switch (mesh.metadata.gltf.extras.type) {
       case 'Terrain': {
+        terrainMesh = mesh
         const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
         let indices = mesh.getIndices();
         let transformedPositions = [];
@@ -258,7 +284,9 @@ onMounted(async () => {
           shape: trimeshShape
         });
         world.addBody(body)
-        chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
+        setTimeout(() => {
+          chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
+        }, 500)
         break
       }
       case 'Road': {
@@ -267,7 +295,7 @@ onMounted(async () => {
       }
       case 'Start': {
         chassisBody.position.copy(mesh.getAbsolutePosition())
-        chassisBody.position.y += 2
+        chassisBody.position.y += 1
         chassisBody.quaternion.copy(mesh.rotationQuaternion?.invert())
         // gameCamera.position.copyFrom(mesh.position)
         break
@@ -290,42 +318,54 @@ onMounted(async () => {
   }
 
 	let carSpeed = 0; // Example: Replace with actual car speed from physics engine
-	const minPitch = 0.5; // Minimum playback rate
-	const maxPitch = 2.0; // Maximum playback rate
-	const maxSpeed = 200; // Example max speed of the car
+	const minPitch = 1; // Minimum playback rate
+	const maxPitch = 3; // Maximum playback rate
+	const maxThrottle = 100; // Example max speed of the car
   const motorForce: number = 10000
+
+  // Subaru WRX STI Gear Ratios
+  let throttle = 0
+  let throttleSpeed = 5
+  let currentGear = 1; // Start in 1st gear
+  let gears = [0, 3.636, 2.375, 1.761, 1.346, 0.971, 0.756];
+  let finalDrive = 3.90
+  let engineTorque = 400;
+  let steeringValue = 0;
+  let maxForce = engineTorque * finalDrive
+  let force = maxForce * gears[currentGear];
   scene.onBeforeRenderObservable.add(() => {
     cannonDebugger.update()
     chassisMesh.material.alpha = debug ? .5 : 0
 
-	  carSpeed = vehicle.currentVehicleSpeedKmHour
-	  let pitch = minPitch + (carSpeed / maxSpeed) * (maxPitch - minPitch);
-	  engineSound.setPlaybackRate(pitch);
-
     if (scene.activeCamera === gameCamera) {
+
+      // camera
       flyCamera.position.copyFrom(gameCamera.position)
       const forward = getVehicleForwardDirection(chassisBody);
       line1.setDirection(forward)
       line1.position.copyFrom(chassisMesh.position)
-
       const cameraOffset = forward.scale(-6).add(new BABYLON.Vector3(0, 2, 0));
       const targetPosition = chassisMesh.position.add(cameraOffset);
       scene.activeCamera.position = BABYLON.Vector3.Lerp(scene.activeCamera.position, targetPosition, cameraLerpSpeed);
-
       const lookAtTarget = BABYLON.Vector3.Lerp(scene.activeCamera.getTarget(), chassisMesh.position.add(forward.scale(5)), cameraLerpSpeed);
       scene.activeCamera.setTarget(lookAtTarget);
 
+
       if (inputMap["z"]) {
-        vehicle.applyEngineForce(-speed, 0);
-        vehicle.applyEngineForce(-speed, 2);
-        vehicle.setBrake(0, 0)
-        vehicle.setBrake(0, 2)
+        if (throttle < 100) {
+          throttle += throttleSpeed
+        }
+      } else {
+        if (throttle > 0) {
+          throttle -= throttleSpeed
+        }
       }
+      slider.value = throttle
       if (inputMap["s"]) {
-        vehicle.setBrake(50, 0)
-        vehicle.setBrake(50, 2)
-        // vehicle.applyEngineForce(speed, 0);
-        // vehicle.applyEngineForce(speed, 2);
+        vehicle.applyEngineForce(motorForce/2, 0);
+        vehicle.applyEngineForce(motorForce/2, 2);
+        vehicle.applyEngineForce(motorForce/2, 1);
+        vehicle.applyEngineForce(motorForce/2, 3);
       }
       if (inputMap["q"]) {
         vehicle.setSteeringValue(-0.5, 0);
@@ -338,12 +378,25 @@ onMounted(async () => {
       if (!inputMap["z"] && !inputMap["s"]) {
         vehicle.applyEngineForce(0, 0);
         vehicle.applyEngineForce(0, 2);
+        vehicle.applyEngineForce(0, 1);
+        vehicle.applyEngineForce(0, 3);
       }
       if (!inputMap["q"] && !inputMap["d"]) {
         vehicle.setSteeringValue(0, 0);
         vehicle.setSteeringValue(0, 2);
       }
     }
+    force = throttle * maxForce * gears[currentGear];
+    if (throttle === 0) {
+      force += 400 // stopping power
+    }
+    vehicle.applyEngineForce(-force, 0);
+    vehicle.applyEngineForce(-force, 2);
+
+    // TODO engine sound based on throttle
+    carSpeed = throttle + Math.abs(vehicle.currentVehicleSpeedKmHour)
+    let pitch = minPitch + (carSpeed / maxThrottle) * (maxPitch - minPitch);
+    engineSound.setPlaybackRate(pitch);
 
     // Sync Babylon.js meshes with Cannon.js physics
     chassisMesh.position.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
@@ -352,13 +405,28 @@ onMounted(async () => {
     for (const wheel of wheels) {
       wheel.update()
     }
+
+    // remettre la voiture sur la piste
+    ray.origin.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
+    const pick = scene.pickWithRay(ray, (m) => m === terrainMesh)
+    if (pick.hit) {
+      lastPickPosition.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
+    } else {
+      chassisBody.quaternion.copy(initialCarQuaternion)
+      chassisBody.velocity.set(0, 0, 0)
+      chassisBody.position.set(
+          lastPickPosition.x,
+          lastPickPosition.y + 2,
+          lastPickPosition.z
+      )
+    }
   });
 
   engine.runRenderLoop(() => scene.render());
   window.addEventListener("resize", () => engine.resize());
 })
-
-
+const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Down())
+const lastPickPosition =  new BABYLON.Vector3()
 
 onUnmounted(() => {
 })
@@ -430,6 +498,7 @@ class Wheel {
     const wheelInfos = this.vehicle.wheelInfos[this.id];
 
     // update la friction en fonction de la vitesse
+    // TODO https://chatgpt.com/c/67d1ff20-1ce0-8013-a3ff-ce3d3e1e035f
     let speed = this.vehicle.chassisBody.velocity.length();
     let friction = this.baseFriction * Math.max(0.5, 1 - (speed / 100));
     friction = Math.max(friction, 0.2);
