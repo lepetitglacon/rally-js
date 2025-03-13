@@ -1,35 +1,37 @@
+import GameEngine from "./GameEngine";
 import * as CANNON from "cannon-es";
 import * as BABYLON from "@babylonjs/core";
 import CannonDebugger from '@/lib/cannon-es-debugger-babylonjs/dist/cannon-es-debugger-babylonjs'
 
-import heightmap from '@/assets/heightmap.png?url'
 import heightmap2 from '@/assets/gltf/france-besancon-bregille.glb?url'
 
 export default class Map {
+    world: CANNON.World;
+    private cannonDebugger: CannonDebugger;
+    public terrainMesh: BABYLON.Mesh
+    public startMesh: BABYLON.Mesh
 
     constructor() {
         window.CANNON = CANNON
         const physicsPlugin = new BABYLON.CannonJSPlugin();
-        scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), physicsPlugin);
+        GameEngine.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), physicsPlugin);
 
-        const world = scene?.getPhysicsEngine()?.getPhysicsPlugin()?.world as CANNON.World
+        const world = GameEngine.scene?.getPhysicsEngine()?.getPhysicsPlugin()?.world as CANNON.World
         world.fixedStep(1/60)
+        this.world = world
 
-        const cannonDebugger = new CannonDebugger(scene, world);
-
-        let terrainMesh: BABYLON.Mesh
-
+        this.cannonDebugger = new CannonDebugger(GameEngine.scene, world);
     }
 
     async initAsync() {
-        const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, scene);
+        const heightMapContainer = await BABYLON.LoadAssetContainerAsync(heightmap2, GameEngine.scene);
         heightMapContainer.meshes[0].position.y -= 100;
         const entries = heightMapContainer.instantiateModelsToScene()
         for (const mesh of entries.rootNodes[0].getChildMeshes()) {
 
             switch (mesh.metadata.gltf.extras.type) {
                 case 'Terrain': {
-                    terrainMesh = mesh
+                    this.terrainMesh = mesh
                     const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
                     let indices = mesh.getIndices();
                     let transformedPositions = [];
@@ -55,10 +57,7 @@ export default class Map {
                         mass: 0, // 0 = static object (Trimesh does not work well with dynamic objects)
                         shape: trimeshShape
                     });
-                    world.addBody(body)
-                    setTimeout(() => {
-                        chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
-                    }, 500)
+                    this.world.addBody(body)
                     break
                 }
                 case 'Road': {
@@ -66,18 +65,19 @@ export default class Map {
                     break
                 }
                 case 'Start': {
-                    chassisBody.position.copy(mesh.getAbsolutePosition())
-                    chassisBody.position.y += 1
-                    chassisBody.quaternion.copy(mesh.rotationQuaternion?.invert())
+                    this.startMesh = mesh
+                    // chassisBody.position.copy(mesh.getAbsolutePosition())
+                    // chassisBody.position.y += 1
+                    // chassisBody.quaternion.copy(mesh.rotationQuaternion?.invert())
                     // gameCamera.position.copyFrom(mesh.position)
                     break
                 }
             }
         }
+        console.log('map loaded')
     }
 
     update() {
-
+        this.cannonDebugger.update()
     }
-
 }

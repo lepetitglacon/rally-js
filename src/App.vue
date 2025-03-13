@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted} from "vue";
-import GameEngine, {scene} from "@/game/GameEngine.ts";
+import GameEngine from "@/game/GameEngine";
 
 onMounted(async () => {
-	console.log(scene)
-	GameEngine.init()
-	console.log(scene)
+  GameEngine.init()
 })
 onUnmounted(() => {
-	GameEngine.dispose()
+
 })
 </script>
 

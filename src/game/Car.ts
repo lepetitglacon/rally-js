@@ -1,35 +1,46 @@
 import * as CANNON from "cannon-es";
 import * as BABYLON from "@babylonjs/core";
 import Wheel from "./Wheel.ts";
+import GameEngine from "./GameEngine";
 
 import subaru from '@/assets/gltf/subaru.glb?url'
 import engine_sound from '@/assets/sound/engine.mp3?url'
 
 export default class Car {
+    private wheels: Wheel[]
+    private chassisShape: CANNON.Box;
+    private chassisBody: CANNON.Body;
+    chassisMesh: BABYLON.Mesh;
+    private vehicle: CANNON.RaycastVehicle;
+    private engineSound: BABYLON.Sound;
+    private ray: BABYLON.Ray;
+    private lastPickPosition: BABYLON.Vector3;
 
     constructor() {
-        const wheels: Wheel[] = [];
+        this.wheels = [];
 
         const config = {
             shape: new CANNON.Vec3(2.5, .5, 1)
         }
         const chassisShape = new CANNON.Box(config.shape);
+        this.chassisShape = chassisShape
         const chassisBody = new CANNON.Body({mass: 2000, type: CANNON.BODY_TYPES.STATIC});
+        this.chassisBody = chassisBody
         chassisBody.addShape(chassisShape);
         chassisBody.position.set(0, 2, 0);
-        const initialCarQuaternion = chassisBody.quaternion.clone()
-        world.addBody(chassisBody);
+        GameEngine.map.world.addBody(chassisBody);
 
         const chassisMesh = BABYLON.MeshBuilder.CreateBox("chassis", {
             width: config.shape.x * 2,
             height: config.shape.y * 2,
             depth: config.shape.z * 2
-        }, scene);
-        const chassisMat = new BABYLON.StandardMaterial('car', scene)
+        }, GameEngine.scene);
+        this.chassisMesh = chassisMesh
+        const chassisMat = new BABYLON.StandardMaterial('car', GameEngine.scene)
         chassisMesh.material = chassisMat
         chassisMesh.material.alpha = .5
 
-        const engineSound = new BABYLON.Sound("engine", engine_sound, scene, () => {
+        const engineSound = new BABYLON.Sound("engine", engine_sound, GameEngine.scene, () => {
             console.log("Sound loaded!");
             engineSound.play()
         }, {
@@ -37,14 +48,18 @@ export default class Car {
             autoplay: true,
             volume: 1
         });
+        this.engineSound = engineSound
+        
+        this.lastPickPosition = BABYLON.Vector3.Zero()
+        this.ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero())
     }
 
     async initAsync() {
-        const container = await BABYLON.LoadAssetContainerAsync(subaru, scene);
+        const container = await BABYLON.LoadAssetContainerAsync(subaru, GameEngine.scene);
         const model = container.instantiateModelsToScene()
         const rootNode = model.rootNodes[0]
-        const transform = new BABYLON.TransformNode('', scene)
-        transform.parent = chassisMesh
+        const transform = new BABYLON.TransformNode('', GameEngine.scene)
+        transform.parent = this.chassisMesh
         rootNode.parent = transform
         transform.position.y -= 1
         // transform.rotation.y -= Math.PI / 2
@@ -70,9 +85,10 @@ export default class Car {
         }
 
 // Create Raycast Vehicle
-        const vehicle = new CANNON.RaycastVehicle({chassisBody});
+        const vehicle = new CANNON.RaycastVehicle({chassisBody: this.chassisBody});
+        this.vehicle = vehicle
         vehicle.chassisBody.quaternion = vehicle.chassisBody.quaternion.mult(BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0, 1, 0), Math.PI / 2))
-        vehicle.addToWorld(world);
+        vehicle.addToWorld(GameEngine.map.world);
 
 // Add 4 wheels
         const xOffset = 1.5
@@ -99,8 +115,21 @@ export default class Car {
         ];
 
         for (const config of wheelConfig) {
-            wheels.push(new Wheel(config, vehicle, scene))
+            this.wheels.push(new Wheel(config, vehicle, GameEngine.scene))
         }
+
+        console.log('car loaded')
+    }
+
+    setInitialPosition(pos) {
+        setTimeout(() => {
+            this.chassisBody.position.set(
+                pos.x,
+                pos.y - .25,
+                pos.z,
+            )
+            this.chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
+        }, 500)
     }
 
     getDirection() {
@@ -128,13 +157,9 @@ export default class Car {
         let steeringValue = 0;
         let maxForce = engineTorque * finalDrive
         let force = maxForce * gears[currentGear];
-        if (scene.activeCamera === gameCamera) {
-
-            // camera
-
-
-
-            if (inputMap["z"]) {
+        
+        if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
+            if (GameEngine.inputManager.keys.throttle) {
                 if (throttle < 100) {
                     throttle += throttleSpeed
                 }
@@ -143,65 +168,85 @@ export default class Car {
                     throttle -= throttleSpeed
                 }
             }
-            slider.value = throttle
-            if (inputMap["s"]) {
-                vehicle.applyEngineForce(motorForce/2, 0);
-                vehicle.applyEngineForce(motorForce/2, 2);
-                vehicle.applyEngineForce(motorForce/2, 1);
-                vehicle.applyEngineForce(motorForce/2, 3);
+            if (GameEngine.inputManager.keys.brake) {
+                this.vehicle.applyEngineForce(motorForce/2, 0);
+                this.vehicle.applyEngineForce(motorForce/2, 2);
+                this.vehicle.applyEngineForce(motorForce/2, 1);
+                this.vehicle.applyEngineForce(motorForce/2, 3);
             }
-            if (inputMap["q"]) {
-                vehicle.setSteeringValue(-0.5, 0);
-                vehicle.setSteeringValue(-0.5, 2);
+            if (GameEngine.inputManager.keys.left) {
+                this.vehicle.setSteeringValue(-0.5, 0);
+                this.vehicle.setSteeringValue(-0.5, 2);
             }
-            if (inputMap["d"]) {
-                vehicle.setSteeringValue(0.5, 0);
-                vehicle.setSteeringValue(0.5, 2);
+            if (GameEngine.inputManager.keys.right) {
+                this.vehicle.setSteeringValue(0.5, 0);
+                this.vehicle.setSteeringValue(0.5, 2);
             }
-            if (!inputMap["z"] && !inputMap["s"]) {
-                vehicle.applyEngineForce(0, 0);
-                vehicle.applyEngineForce(0, 2);
-                vehicle.applyEngineForce(0, 1);
-                vehicle.applyEngineForce(0, 3);
+            if (!GameEngine.inputManager.keys.throttle && !GameEngine.inputManager.keys.brake) {
+                this.vehicle.applyEngineForce(0, 0);
+                this.vehicle.applyEngineForce(0, 2);
+                this.vehicle.applyEngineForce(0, 1);
+                this.vehicle.applyEngineForce(0, 3);
             }
-            if (!inputMap["q"] && !inputMap["d"]) {
-                vehicle.setSteeringValue(0, 0);
-                vehicle.setSteeringValue(0, 2);
+            if (!GameEngine.inputManager.keys.right && !GameEngine.inputManager.keys.left) {
+                this.vehicle.setSteeringValue(0, 0);
+                this.vehicle.setSteeringValue(0, 2);
             }
         }
+        
         force = throttle * maxForce * gears[currentGear];
         if (throttle === 0) {
             force += 400 // stopping power
         }
-        vehicle.applyEngineForce(-force, 0);
-        vehicle.applyEngineForce(-force, 2);
+        this.vehicle.applyEngineForce(-force, 0);
+        this.vehicle.applyEngineForce(-force, 2);
 
         // TODO engine sound based on throttle
-        carSpeed = throttle + Math.abs(vehicle.currentVehicleSpeedKmHour)
-        let pitch = minPitch + (carSpeed / maxThrottle) * (maxPitch - minPitch);
-        engineSound.setPlaybackRate(pitch);
+        // carSpeed = throttle + Math.abs(this.vehicle.currentVehicleSpeedKmHour)
+        // let pitch = minPitch + (carSpeed / maxThrottle) * (maxPitch - minPitch);
+        // engineSound.setPlaybackRate(pitch);
 
         // Sync Babylon.js meshes with Cannon.js physics
-        chassisMesh.position.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
-        chassisMesh.rotationQuaternion = new BABYLON.Quaternion(chassisBody.quaternion.x, chassisBody.quaternion.y, chassisBody.quaternion.z, chassisBody.quaternion.w);
-
-        for (const wheel of wheels) {
-            wheel.update()
-        }
+        this.chassisMesh.position.set(
+            this.chassisBody.position.x, 
+            this.chassisBody.position.y, 
+            this.chassisBody.position.z
+        )
+        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion(
+            this.chassisBody.quaternion.x, 
+            this.chassisBody.quaternion.y, 
+            this.chassisBody.quaternion.z, 
+            this.chassisBody.quaternion.w
+        );
 
         // remettre la voiture sur la piste
-        ray.origin.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
-        const pick = scene.pickWithRay(ray, (m) => m === terrainMesh)
-        if (pick.hit) {
-            lastPickPosition.set(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z)
-        } else {
-            chassisBody.quaternion.copy(initialCarQuaternion)
-            chassisBody.velocity.set(0, 0, 0)
-            chassisBody.position.set(
-                lastPickPosition.x,
-                lastPickPosition.y + 2,
-                lastPickPosition.z
-            )
+        // this.ray.origin.set(
+        //     this.chassisBody.position.x,
+        //     this.chassisBody.position.y,
+        //     this.chassisBody.position.z
+        // )
+        // const pick = GameEngine.scene.pickWithRay(
+        //     this.ray,
+        //     (m) => m === GameEngine.map.terrainMesh
+        // )
+        // if (pick.hit) {
+        //     this.lastPickPosition.set(
+        //         this.chassisBody.position.x,
+        //         this.chassisBody.position.y,
+        //         this.chassisBody.position.z
+        //     )
+        // } else {
+        //     // this.chassisBody.quaternion.copy(initialCarQuaternion)
+        //     this.chassisBody.velocity.set(0, 0, 0)
+        //     this.chassisBody.position.set(
+        //         this.lastPickPosition.x,
+        //         this.lastPickPosition.y + 2,
+        //         this.lastPickPosition.z
+        //     )
+        // }
+
+        for (const wheel of this.wheels) {
+            wheel.update()
         }
     }
 

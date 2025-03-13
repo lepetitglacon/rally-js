@@ -75,16 +75,16 @@ export default class Wheel {
         friction = Math.max(friction, 0.2);
         wheelInfos.frictionSlip = friction;
 
-        if (inputMap["z"]) {
-            if (wheelInfos.isFrontWheel) {
-                wheelInfos.frictionSlip = friction - 0.2
-            }
-        }
-        if (inputMap["s"]) {
-            if (wheelInfos.isFrontWheel) {
-                wheelInfos.frictionSlip = this.baseFriction
-            }
-        }
+        // if (inputMap["z"]) {
+        //     if (wheelInfos.isFrontWheel) {
+        //         wheelInfos.frictionSlip = friction - 0.2
+        //     }
+        // }
+        // if (inputMap["s"]) {
+        //     if (wheelInfos.isFrontWheel) {
+        //         wheelInfos.frictionSlip = this.baseFriction
+        //     }
+        // }
         // if (inputMap[" "]) {
         //   if (!wheelInfos.isFrontWheel) {
         // 	  this.vehicle.setBrake(5, this.id)

@@ -1,12 +1,18 @@
 export default class InputManager {
-    private keys: {
+    public keys: {
         throttle: boolean;
         brake: boolean;
+        right: boolean
         left: boolean;
         handbrake: boolean;
-        right: boolean
     };
-    private keyMap: {};
+    private keyMap: {
+        throttle: 'z',
+        brake: 's',
+        left: 'q',
+        right: 'd',
+        handbrake: ' ',
+    };
 
     constructor() {
         this.keys = {
@@ -18,7 +24,13 @@ export default class InputManager {
         };
 
         // TODO keymap
-        this.keyMap = {}
+        this.keyMap = {
+            throttle: 'z',
+            brake: 's',
+            left: 'q',
+            right: 'd',
+            handbrake: ' ',
+        }
 
         this.setupKeyboard();
         this.setupGamepad();
@@ -26,48 +38,40 @@ export default class InputManager {
 
     setupKeyboard() {
         window.addEventListener("keydown", (event) => {
-            switch (event.code) {
-                case "ArrowUp": // Throttle
-                case "KeyW":
+            console.log(event)
+            switch (event.key) {
+                case this.keyMap.throttle:
                     this.keys.throttle = true;
                     break;
-                case "ArrowDown": // Brake
-                case "KeyS":
+                case this.keyMap.brake:
                     this.keys.brake = true;
                     break;
-                case "ArrowLeft": // Steering Left
-                case "KeyA":
+                case this.keyMap.left:
                     this.keys.left = true;
                     break;
-                case "ArrowRight": // Steering Right
-                case "KeyD":
+                case this.keyMap.right:
                     this.keys.right = true;
                     break;
-                case "Space": // Handbrake
+                case this.keyMap.handbrake: // Handbrake
                     this.keys.handbrake = true;
                     break;
             }
         });
-
         window.addEventListener("keyup", (event) => {
-            switch (event.code) {
-                case "ArrowUp":
-                case "KeyW":
+            switch (event.key) {
+                case this.keyMap.throttle:
                     this.keys.throttle = false;
                     break;
-                case "ArrowDown":
-                case "KeyS":
+                case this.keyMap.brake:
                     this.keys.brake = false;
                     break;
-                case "ArrowLeft":
-                case "KeyA":
+                case this.keyMap.left:
                     this.keys.left = false;
                     break;
-                case "ArrowRight":
-                case "KeyD":
+                case this.keyMap.right:
                     this.keys.right = false;
                     break;
-                case "Space":
+                case this.keyMap.handbrake: // Handbrake
                     this.keys.handbrake = false;
                     break;
             }

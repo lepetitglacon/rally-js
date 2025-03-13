@@ -1,27 +1,27 @@
 import * as BABYLON from "@babylonjs/core";
 import * as GUI from "@babylonjs/gui";
-import Car from "./Car.ts";
 import Map from "./Map.ts";
+import Car from "./Car.ts";
 import CameraManager from "./CameraManager.ts";
 import InputManager from "./InputManager.ts";
 import {registerBuiltInLoaders} from "@babylonjs/loaders/dynamic";
 
 class GameEngine {
-    private canvas: HTMLCanvasElement;
+    public canvas: HTMLCanvasElement;
     public scene: BABYLON.Scene;
     public engine: BABYLON.Engine;
 
-    private map: Map;
-    private car: Car;
+    public map: Map;
+    public car: Car;
     private gui: GUI.AdvancedDynamicTexture;
-    private cameraManager: CameraManager;
-    private inputManager: InputManager;
+    cameraManager: CameraManager;
+    inputManager: InputManager;
 
     constructor() {}
 
     async init() {
-        this.initEngine()
-        this.initScene()
+        await this.initEngine()
+        await this.initScene()
 
         this.gui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
@@ -30,6 +30,11 @@ class GameEngine {
         registerBuiltInLoaders()
         this.map = new Map()
         this.car = new Car()
+
+        await this.map.initAsync()
+        await this.car.initAsync()
+
+        this.car.setInitialPosition(this.map.startMesh.getAbsolutePosition())
 
         this.scene.onBeforeRenderObservable.add(() => {
             this.inputManager.update()
@@ -42,11 +47,15 @@ class GameEngine {
     }
 
     private initEngine() {
-        this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
-        this.engine = new BABYLON.Engine(this.canvas, true, {
-            audioEngine: true
-        });
-        window.addEventListener("resize", () => this.engine.resize());
+        return new Promise((res): void => {
+            this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
+            this.engine = new BABYLON.Engine(this.canvas, true, {
+                audioEngine: true
+            });
+            window.addEventListener("resize", () => this.engine.resize());
+            return res()
+        })
+
         // sound
         // BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
         // window.addEventListener(
@@ -60,17 +69,20 @@ class GameEngine {
         // );
     }
     private initScene() {
-        const scene = new BABYLON.Scene(this.engine);
-        this.scene = scene
-        scene.actionManager = new BABYLON.ActionManager(scene);
+        return new Promise((res): void => {
+            const scene = new BABYLON.Scene(this.engine);
+            this.scene = scene
+            scene.actionManager = new BABYLON.ActionManager(scene);
 
-        const hemisphereLight = new BABYLON.HemisphericLight("light",
-            new BABYLON.Vector3(0, 1, 0), scene);
-        hemisphereLight.intensity = 0.7;
-        // const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
-        // light.position.y = 50
-        // const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
-        // shadowGenerator.useContactHardeningShadow = true;
+            const hemisphereLight = new BABYLON.HemisphericLight("light",
+                new BABYLON.Vector3(0, 1, 0), scene);
+            hemisphereLight.intensity = 0.7;
+            // const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+            // light.position.y = 50
+            // const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
+            // shadowGenerator.useContactHardeningShadow = true;
+            return res()
+        })
     }
 
     async dispose() {
@@ -79,6 +91,6 @@ class GameEngine {
     }
 
 }
-const ge =  new GameEngine()
-export default ge;
-export const scene = ge.scene
+let gameEngine = new GameEngine()
+export default gameEngine;
+export const scene = gameEngine.scene
