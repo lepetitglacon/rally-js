@@ -57,16 +57,16 @@ class GameEngine {
         })
 
         // sound
-        // BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
-        // window.addEventListener(
-        //     "click",
-        //     () => {
-        //       if (!BABYLON.Engine.audioEngine.unlocked) {
-        //         BABYLON.Engine.audioEngine.unlock();
-        //       }
-        //     },
-        //     { once: true },
-        // );
+        BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
+        window.addEventListener(
+            "click",
+            () => {
+              if (!BABYLON.Engine.audioEngine.unlocked) {
+                BABYLON.Engine.audioEngine.unlock();
+              }
+            },
+            { once: true },
+        );
     }
     private initScene() {
         return new Promise((res): void => {

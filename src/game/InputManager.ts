@@ -38,7 +38,6 @@ export default class InputManager {
 
     setupKeyboard() {
         window.addEventListener("keydown", (event) => {
-            console.log(event)
             switch (event.key) {
                 case this.keyMap.throttle:
                     this.keys.throttle = true;

@@ -1,6 +1,8 @@
 import * as BABYLON from "@babylonjs/core";
 import * as CANNON from "cannon-es";
 import type {WheelInfoOptions} from "objects/WheelInfo";
+import GameEngine from "./GameEngine.ts";
+import type Car from "./Car.ts";
 
 export default class Wheel {
     private params: CANNON.WheelInfoOptions;
@@ -15,7 +17,7 @@ export default class Wheel {
     static wheelTransformQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0,-1,0), Math.PI / 2)
     static wheelMaterial = new CANNON.Material('wheel')
 
-    constructor(params, vehicle, scene) {
+    constructor(params, vehicle, scene, car: Car) {
 
         this.vehicle = vehicle
         this.params = {
@@ -85,15 +87,16 @@ export default class Wheel {
         //         wheelInfos.frictionSlip = this.baseFriction
         //     }
         // }
-        // if (inputMap[" "]) {
-        //   if (!wheelInfos.isFrontWheel) {
-        // 	  this.vehicle.setBrake(5, this.id)
-        //   }
-        // } else {
-        //   if (!wheelInfos.isFrontWheel) {
-        // 	  this.vehicle.setBrake(0, this.id)
-        //   }
-        // }
+
+        if (GameEngine.inputManager.keys.handbrake) {
+            this.vehicle.setBrake(5, 1);
+            this.vehicle.setBrake(5, 3);
+            wheelInfos.frictionSlip = .5
+        } else {
+            this.vehicle.setBrake(0, 1);
+            this.vehicle.setBrake(0, 3);
+            wheelInfos.frictionSlip = friction
+        }
 
         const worldTransform = wheelInfos.worldTransform;
         this.body.position.copy(worldTransform.position)

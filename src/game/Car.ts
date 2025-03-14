@@ -4,20 +4,26 @@ import Wheel from "./Wheel.ts";
 import GameEngine from "./GameEngine";
 
 import subaru from '@/assets/gltf/subaru.glb?url'
-import engine_sound from '@/assets/sound/engine.mp3?url'
+
+import CarEngine from "./CarEngine.ts";
 
 export default class Car {
     private wheels: Wheel[]
+    private engine: CarEngine;
+
     private chassisShape: CANNON.Box;
     private chassisBody: CANNON.Body;
-    chassisMesh: BABYLON.Mesh;
+    public chassisMesh: BABYLON.Mesh;
     private vehicle: CANNON.RaycastVehicle;
-    private engineSound: BABYLON.Sound;
+
     private ray: BABYLON.Ray;
     private lastPickPosition: BABYLON.Vector3;
 
+    private engineSound: BABYLON.Sound;
+
     constructor() {
         this.wheels = [];
+        this.engine = new CarEngine(this)
 
         const config = {
             shape: new CANNON.Vec3(2.5, .5, 1)
@@ -39,19 +45,15 @@ export default class Car {
         const chassisMat = new BABYLON.StandardMaterial('car', GameEngine.scene)
         chassisMesh.material = chassisMat
         chassisMesh.material.alpha = .5
-
-        const engineSound = new BABYLON.Sound("engine", engine_sound, GameEngine.scene, () => {
-            console.log("Sound loaded!");
-            engineSound.play()
-        }, {
-            loop: true,
-            autoplay: true,
-            volume: 1
-        });
-        this.engineSound = engineSound
         
         this.lastPickPosition = BABYLON.Vector3.Zero()
         this.ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero())
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                this.engine.startStopEngine()
+            }
+        })
     }
 
     async initAsync() {
@@ -115,7 +117,7 @@ export default class Car {
         ];
 
         for (const config of wheelConfig) {
-            this.wheels.push(new Wheel(config, vehicle, GameEngine.scene))
+            this.wheels.push(new Wheel(config, vehicle, GameEngine.scene, this))
         }
 
         console.log('car loaded')
@@ -149,30 +151,33 @@ export default class Car {
 
         // Subaru WRX STI Gear Ratios
         let throttle = 0
-        let throttleSpeed = 5
+        let throttleSpeed = 0.1
         let currentGear = 1; // Start in 1st gear
-        let gears = [0, 3.636, 2.375, 1.761, 1.346, 0.971, 0.756];
         let finalDrive = 3.90
         let engineTorque = 400;
         let steeringValue = 0;
         let maxForce = engineTorque * finalDrive
-        let force = maxForce * gears[currentGear];
-        
+
         if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
             if (GameEngine.inputManager.keys.throttle) {
-                if (throttle < 100) {
-                    throttle += throttleSpeed
+                if (this.engine.throttle < 1) {
+                    this.engine.throttle += throttleSpeed
                 }
             } else {
-                if (throttle > 0) {
-                    throttle -= throttleSpeed
+                if (this.engine.throttle > 0) {
+                    this.engine.throttle -= throttleSpeed
                 }
             }
             if (GameEngine.inputManager.keys.brake) {
-                this.vehicle.applyEngineForce(motorForce/2, 0);
-                this.vehicle.applyEngineForce(motorForce/2, 2);
-                this.vehicle.applyEngineForce(motorForce/2, 1);
-                this.vehicle.applyEngineForce(motorForce/2, 3);
+                this.vehicle.setBrake(5, 0);
+                this.vehicle.setBrake(5, 2);
+                this.vehicle.setBrake(5, 1);
+                this.vehicle.setBrake(5, 3);
+            } else {
+                this.vehicle.setBrake(0, 0);
+                this.vehicle.setBrake(0, 2);
+                this.vehicle.setBrake(0, 1);
+                this.vehicle.setBrake(0, 3);
             }
             if (GameEngine.inputManager.keys.left) {
                 this.vehicle.setSteeringValue(-0.5, 0);
@@ -192,14 +197,8 @@ export default class Car {
                 this.vehicle.setSteeringValue(0, 0);
                 this.vehicle.setSteeringValue(0, 2);
             }
+
         }
-        
-        force = throttle * maxForce * gears[currentGear];
-        if (throttle === 0) {
-            force += 400 // stopping power
-        }
-        this.vehicle.applyEngineForce(-force, 0);
-        this.vehicle.applyEngineForce(-force, 2);
 
         // TODO engine sound based on throttle
         // carSpeed = throttle + Math.abs(this.vehicle.currentVehicleSpeedKmHour)
@@ -244,8 +243,10 @@ export default class Car {
         //         this.lastPickPosition.z
         //     )
         // }
+        this.engine.update()
 
         for (const wheel of this.wheels) {
+            this.vehicle.applyEngineForce(-this.engine.updateWheelForce(throttle), wheel.id)
             wheel.update()
         }
     }
