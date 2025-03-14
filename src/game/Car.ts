@@ -30,7 +30,10 @@ export default class Car {
         }
         const chassisShape = new CANNON.Box(config.shape);
         this.chassisShape = chassisShape
-        const chassisBody = new CANNON.Body({mass: 2000, type: CANNON.BODY_TYPES.STATIC});
+        const chassisBody = new CANNON.Body({
+            mass: 1500,
+            type: CANNON.BODY_TYPES.STATIC
+        });
         this.chassisBody = chassisBody
         chassisBody.addShape(chassisShape);
         chassisBody.position.set(0, 2, 0);
@@ -124,6 +127,9 @@ export default class Car {
     }
 
     setInitialPosition(pos) {
+        this.vehicle.setBrake(100, 0)
+        this.vehicle.setBrake(100, 2)
+
         setTimeout(() => {
             this.chassisBody.position.set(
                 pos.x,
@@ -168,17 +174,23 @@ export default class Car {
                     this.engine.throttle -= throttleSpeed
                 }
             }
-            if (GameEngine.inputManager.keys.brake) {
-                this.vehicle.setBrake(5, 0);
-                this.vehicle.setBrake(5, 2);
-                this.vehicle.setBrake(5, 1);
-                this.vehicle.setBrake(5, 3);
-            } else {
-                this.vehicle.setBrake(0, 0);
-                this.vehicle.setBrake(0, 2);
-                this.vehicle.setBrake(0, 1);
-                this.vehicle.setBrake(0, 3);
-            }
+            // if (GameEngine.inputManager.keys.brake) {
+            //     this.vehicle.setBrake(5, 0);
+            //     this.vehicle.setBrake(5, 2);
+            //     this.vehicle.setBrake(5, 1);
+            //     this.vehicle.setBrake(5, 3);
+            // } else {
+            //     this.vehicle.setBrake(0, 0);
+            //     this.vehicle.setBrake(0, 2);
+            //     this.vehicle.setBrake(0, 1);
+            //     this.vehicle.setBrake(0, 3);
+            // }
+            // if (!GameEngine.inputManager.keys.throttle && !GameEngine.inputManager.keys.brake) {
+            //     this.vehicle.applyEngineForce(0, 0);
+            //     this.vehicle.applyEngineForce(0, 2);
+            //     this.vehicle.applyEngineForce(0, 1);
+            //     this.vehicle.applyEngineForce(0, 3);
+            // }
             if (GameEngine.inputManager.keys.left) {
                 this.vehicle.setSteeringValue(-0.5, 0);
                 this.vehicle.setSteeringValue(-0.5, 2);
@@ -186,12 +198,6 @@ export default class Car {
             if (GameEngine.inputManager.keys.right) {
                 this.vehicle.setSteeringValue(0.5, 0);
                 this.vehicle.setSteeringValue(0.5, 2);
-            }
-            if (!GameEngine.inputManager.keys.throttle && !GameEngine.inputManager.keys.brake) {
-                this.vehicle.applyEngineForce(0, 0);
-                this.vehicle.applyEngineForce(0, 2);
-                this.vehicle.applyEngineForce(0, 1);
-                this.vehicle.applyEngineForce(0, 3);
             }
             if (!GameEngine.inputManager.keys.right && !GameEngine.inputManager.keys.left) {
                 this.vehicle.setSteeringValue(0, 0);
@@ -246,7 +252,7 @@ export default class Car {
         this.engine.update()
 
         for (const wheel of this.wheels) {
-            this.vehicle.applyEngineForce(-this.engine.updateWheelForce(throttle), wheel.id)
+            this.vehicle.applyEngineForce(-this.engine.wheelTorque, wheel.id)
             wheel.update()
         }
     }

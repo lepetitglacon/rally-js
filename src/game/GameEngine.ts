@@ -13,7 +13,7 @@ class GameEngine {
 
     public map: Map;
     public car: Car;
-    private gui: GUI.AdvancedDynamicTexture;
+    gui: GUI.AdvancedDynamicTexture;
     cameraManager: CameraManager;
     inputManager: InputManager;
 
