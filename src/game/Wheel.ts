@@ -6,6 +6,7 @@ import type Car from "./Car.ts";
 
 export default class Wheel {
     private params: CANNON.WheelInfoOptions;
+    private car: Car;
     private vehicle: CANNON.RaycastVehicle;
     private mesh: BABYLON.Mesh;
     private shape: CANNON.Shape;
@@ -19,6 +20,7 @@ export default class Wheel {
 
     constructor(params, vehicle, scene, car: Car) {
 
+        this.car = car
         this.vehicle = vehicle
         this.params = {
             radius: 0.35,
@@ -66,10 +68,10 @@ export default class Wheel {
     }
 
     update() {
-        this.vehicle.updateWheelTransform(this.id);
-
         const wheelInfos = this.vehicle.wheelInfos[this.id];
 
+        // wheelInfos.engineForce = -this.car.engine.wheelTorque
+        wheelInfos.engineForce = 100
         // update la friction en fonction de la vitesse
         // TODO https://chatgpt.com/c/67d1ff20-1ce0-8013-a3ff-ce3d3e1e035f
         let speed = this.vehicle.chassisBody.velocity.length();
@@ -98,6 +100,8 @@ export default class Wheel {
             wheelInfos.frictionSlip = friction
         }
 
+
+        this.vehicle.updateWheelTransform(this.id);
         const worldTransform = wheelInfos.worldTransform;
         this.body.position.copy(worldTransform.position)
         this.body.quaternion.copy(worldTransform.quaternion)
@@ -109,6 +113,8 @@ export default class Wheel {
         this.debugMesh.position.copyFromFloats(this.body.position.x, this.body.position.y, this.body.position.z);
         this.debugMesh.rotationQuaternion.copyFromFloats(this.body.quaternion.x, this.body.quaternion.y, this.body.quaternion.z, this.body.quaternion.w)
         this.debugMesh.rotationQuaternion.multiplyInPlace(Wheel.wheelTransformQuaternion)
+
+
     }
 
 }

@@ -5,6 +5,7 @@ import Car from "./Car.ts";
 import CameraManager from "./CameraManager.ts";
 import InputManager from "./InputManager.ts";
 import {registerBuiltInLoaders} from "@babylonjs/loaders/dynamic";
+import Gui from "./Gui.ts";
 
 class GameEngine {
     public canvas: HTMLCanvasElement;
@@ -13,7 +14,7 @@ class GameEngine {
 
     public map: Map;
     public car: Car;
-    gui: GUI.AdvancedDynamicTexture;
+    gui: Gui;
     cameraManager: CameraManager;
     inputManager: InputManager;
 
@@ -23,7 +24,7 @@ class GameEngine {
         await this.initEngine()
         await this.initScene()
 
-        this.gui = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        this.gui = new Gui()
 
         this.cameraManager = new CameraManager()
         this.inputManager = new InputManager()

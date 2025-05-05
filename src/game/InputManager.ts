@@ -5,13 +5,15 @@ export default class InputManager {
         right: boolean
         left: boolean;
         handbrake: boolean;
+        shift: boolean;
     };
     private keyMap: {
-        throttle: 'z',
-        brake: 's',
-        left: 'q',
-        right: 'd',
-        handbrake: ' ',
+        throttle: string,
+        brake: string,
+        left: string,
+        right: string,
+        handbrake: string,
+        shift: string,
     };
 
     constructor() {
@@ -20,7 +22,8 @@ export default class InputManager {
             brake: false,
             left: false,
             right: false,
-            handbrake: false
+            handbrake: false,
+            shift: false
         };
 
         // TODO keymap
@@ -30,6 +33,7 @@ export default class InputManager {
             left: 'q',
             right: 'd',
             handbrake: ' ',
+            shift: 'Shift',
         }
 
         this.setupKeyboard();
@@ -54,6 +58,9 @@ export default class InputManager {
                 case this.keyMap.handbrake: // Handbrake
                     this.keys.handbrake = true;
                     break;
+                case this.keyMap.shift: // Handbrake
+                    this.keys.shift = true;
+                    break;
             }
         });
         window.addEventListener("keyup", (event) => {
@@ -72,6 +79,9 @@ export default class InputManager {
                     break;
                 case this.keyMap.handbrake: // Handbrake
                     this.keys.handbrake = false;
+                    break;
+                case this.keyMap.shift: // Handbrake
+                    this.keys.shift = false;
                     break;
             }
         });

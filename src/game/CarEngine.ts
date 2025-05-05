@@ -1,206 +1,302 @@
 import * as BABYLON from "@babylonjs/core";
-import * as GUI from "@babylonjs/gui";
-import engine_sound from '@/assets/sound/engine.mp3?url'
+import type {RaycastVehicle} from "objects/RaycastVehicle";
 import GameEngine from "./GameEngine.ts";
-import type Car from "./Car.ts";
-import {Lerp} from "@babylonjs/core/Maths/math.scalar.functions";
 
-export default class CarEngine {
-    private car: Car;
-    private engineRunning: boolean;
+interface EngineOptions {
+    maxRpm?: number;
+    idleRpm?: number;
+    redlineRpm?: number;
+    maxTorque?: number;
+    engineBraking?: number;
+    gearRatios?: number[];
+    differentialRatio?: number;
+    wheelRadius?: number;
+}
 
-    private maxRPM: number;
-    private idleRPM: number;
-    private currentRPM: number;
-    private redlineRPM: number;
+// Interface for Engine information
+interface EngineInfo {
+    rpm: number;
+    gear: number;
+    throttle: number;
+    clutch: number;
+}
 
+class Engine {
+    // Engine parameters
+    private maxRpm: number;
+    private idleRpm: number;
+    private redlineRpm: number;
+    private maxTorque: number;
+    private engineBraking: number;
+
+    // Transmission parameters
     private gearRatios: number[];
+    private differentialRatio: number;
     private currentGear: number;
 
-    throttle: number;
-    public brake: number;
-
-    private engineSound: BABYLON.Sound;
-    private torqueCurve: {
-        7000: number;
-        5000: number;
-        6000: number;
-        4000: number;
-        1000: number;
-        2000: number;
-        3000: number
-    };
-    public engineTorque: number;
-    public wheelTorque: number;
-    public wheelSpeed: number;
+    // Vehicle parameters
     private wheelRadius: number;
-    private differentialRatio: number;
-    private slider: GUI.Slider;
-    private header: GUI.TextBlock;
 
-    constructor(car: Car) {
-        this.car = car
+    // Runtime state
+    private currentRpm: number;
+    private throttleInput: number;
+    private clutchInput: number;
 
-        this.currentRPM = 0;
-        this.maxRPM = 7000; // Max engine RPM
-        this.idleRPM = 800; // Idle RPM
-        this.redlineRPM = 6500; // Engine redline
+    // Vehicle reference
+    private vehicle: RaycastVehicle | null;
+    private gearGui: { header: TextBlock; onUpdate: (headerValue, sliderValue) => void };
+    private running: boolean;
 
-        this.gearRatios = [0, 3.636, 2.375, 1.761, 1.346, 0.971, 0.756]; // 0 = Neutral, 1-6 gears
-        this.currentGear = 0; // Start in neutral
+    /**
+     * Class representing a vehicle engine that manages power transfer between engine and wheels
+     * @param {EngineOptions} options - Engine configuration options
+     */
+    constructor(options: EngineOptions = {}) {
+        // Engine parameters
+        this.maxRpm = options.maxRpm || 7500;
+        this.idleRpm = options.idleRpm || 800;
+        this.redlineRpm = options.redlineRpm || 6500;
+        this.maxTorque = options.maxTorque || 350;
+        this.engineBraking = options.engineBraking || 0.2;
 
-        this.wheelRadius = 0.34; // Meters
-        this.wheelTorque = 0;
-        this.wheelSpeed = 0;
-        this.engineTorque = 0;
-        this.differentialRatio = 3.9;
-        this.torqueCurve = {
-            1000: 100, 2000: 180, 3000: 220,
-            4000: 250, 5000: 240, 6000: 200, 7000: 150
-        };
+        // Transmission parameters
+        this.gearRatios = options.gearRatios || [3.5, 2.5, 1.8, 1.3, 1.0, 0.8];
+        this.differentialRatio = options.differentialRatio || 3.42;
+        this.currentGear = 0;
 
-        this.engineRunning = false;
-        this.throttle = 0; // Throttle percentage (0 - 1)
-        this.brake = 0;
+        // Vehicle parameters
+        this.wheelRadius = options.wheelRadius || 0.35; // meters
 
-        const engineSound = new BABYLON.Sound(
-            "engine",
-            engine_sound,
-            GameEngine.scene,
-            null,
-            {
-            loop: true,
-            volume: 1
-        });
-        this.engineSound = engineSound
+        // Runtime state
+        this.running = false;
+        this.currentRpm = this.idleRpm;
+        this.throttleInput = 0;
+        this.clutchInput = 0; // 0 = fully engaged, 1 = fully disengaged
 
-        var panel = new GUI.StackPanel();
-        panel.width = "220px";
-        panel.height = "220px";
-        panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-        panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        GameEngine.gui.addControl(panel);
+        // Vehicle reference (to be set later)
+        this.vehicle = null;
 
-        this.header = new GUI.TextBlock();
-        this.header.text = "RPM";
-        this.header.height = "30px";
-        this.header.color = "white";
-        panel.addControl(this.header);
+        this.gearGui = GameEngine.gui.createSlider()
+        this.speedGui = GameEngine.gui.createSlider()
 
-        this.slider = new GUI.Slider();
-        this.slider.minimum = 0;
-        this.slider.maximum = this.maxRPM;
-        this.slider.value = 0;
-        this.slider.height = "200px";
-        this.slider.width = "20px";
-        this.slider.isVertical = true
-        // slider.onValueChangedObservable.add(function(value) {
-        //     header.text = "Y-rotation: " + (BABYLON.Tools.ToDegrees(value) | 0) + " deg";
-        //     if (skull) {
-        //         skull.rotation.y = value;
-        //     }
-        // });
-        panel.addControl(this.slider);
+        this.rpmGui = GameEngine.gui.createSlider()
+        this.throttleGui = GameEngine.gui.createSlider()
+        this.engineTorqueGui = GameEngine.gui.createSlider()
+        this.wheelTorqueGui = GameEngine.gui.createSlider()
 
-        GameEngine.scene.onPointerObservable.add((pointerInfo) => {
-            switch (pointerInfo.type) {
-                case BABYLON.PointerEventTypes.POINTERDOWN:
-                    if (pointerInfo.event.button === 0) {
-                        this.shiftGear(this.currentGear + 1)
-                    }
-                    if (pointerInfo.event.button === 2) {
-                        this.shiftGear(this.currentGear - 1)
-                    }
-                    break;
+        GameEngine.scene.onPointerObservable.add((e) => {
+            console.log(e)
+            if (e.type === BABYLON.PointerEventTypes.POINTERDOWN) {
+                switch (e.event.button) {
+                    case 0:
+                        this.shiftUp()
+                        break;
+                    case 2:
+                        this.shiftDown()
+                        break;
+                }
             }
-        });
+        })
+    }
+
+    /**
+     * Connect this engine to a Cannon.js raycast vehicle
+     * @param {RaycastVehicle} vehicle - Cannon-ES RaycastVehicle instance
+     */
+    public attachToVehicle(vehicle: RaycastVehicle): void {
+        if (!vehicle) {
+            throw new Error("Vehicle cannot be null");
+        }
+        this.vehicle = vehicle;
     }
 
     startStopEngine() {
-        if (this.engineRunning) {
-            this.engineRunning = false;
-            this.currentRPM = 0;
-            console.log("🛑 Engine stopped.");
-            this.engineSound.stop()
+        if (this.running) {
+            this.running = false
         } else {
-            this.engineRunning = true;
-            this.currentRPM = this.idleRPM;
+            this.running = true
+        }
+    }
 
-            this.engineSound.play()
+    /**
+     * Set throttle input (0.0 to 1.0)
+     * @param {number} value - Throttle input (0 = no throttle, 1 = full throttle)
+     */
+    public setThrottle(value: number): void {
+        this.throttleInput = Math.max(0, Math.min(1, value));
+    }
 
-            if (!BABYLON.Engine.audioEngine.unlocked) {
-                BABYLON.Engine.audioEngine.unlock();
+    /**
+     * Set clutch input (0.0 to 1.0)
+     * @param {number} value - Clutch input (0 = fully engaged, 1 = fully disengaged)
+     */
+    public setClutch(value: number): void {
+        this.clutchInput = Math.max(0, Math.min(1, value));
+    }
+
+    /**
+     * Set current gear (0-based index into gearRatios array)
+     * @param {number} gear - Gear number (0-based)
+     */
+    public setGear(gear: number): void {
+        if (gear >= 0 && gear < this.gearRatios.length) {
+            this.currentGear = gear;
+        }
+    }
+
+    /**
+     * Shift to next higher gear if possible
+     * @returns {boolean} - True if shift was successful
+     */
+    public shiftUp(): boolean {
+        if (this.currentGear < this.gearRatios.length - 1) {
+            this.currentGear++;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Shift to next lower gear if possible
+     * @returns {boolean} - True if shift was successful
+     */
+    public shiftDown(): boolean {
+        if (this.currentGear > 0) {
+            this.currentGear--;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Calculate engine torque based on current RPM and throttle position
+     * @returns {number} - Engine torque in Nm
+     */
+    private calculateEngineTorque(): number {
+        // Simple torque curve simulation
+        // Max torque at redline RPM, linear up to that point, then falling off
+        let torqueRatio: number;
+
+        if (this.currentRpm < this.idleRpm) {
+            torqueRatio = 0.1; // Minimal torque below idle
+        } else if (this.currentRpm <= this.redlineRpm) {
+            // Linear increase up to redline
+            torqueRatio = 0.2 + 0.8 * ((this.currentRpm - this.idleRpm) / (this.redlineRpm - this.idleRpm));
+        } else {
+            // Torque falls off after redline
+            const overRevFactor = Math.max(0, 1 - (this.currentRpm - this.redlineRpm) / (this.maxRpm - this.redlineRpm));
+            torqueRatio = Math.max(0.1, overRevFactor);
+        }
+
+        return this.maxTorque * torqueRatio * this.throttleInput;
+    }
+
+    /**
+     * Calculate wheel torque based on engine torque and transmission
+     * @param {number} engineTorque - Current engine torque
+     * @returns {number} - Torque at the wheels
+     */
+    private calculateWheelTorque(engineTorque: number): number {
+        const transmissionRatio = this.gearRatios[this.currentGear] * this.differentialRatio;
+        const clutchEffect = 1 - this.clutchInput;
+
+        return engineTorque * transmissionRatio * clutchEffect;
+    }
+
+    /**
+     * Calculate engine RPM based on wheel rotation speed
+     * @param {number} wheelAngularVelocity - Angular velocity of the wheel (rad/s)
+     * @returns {number} - Engine RPM
+     */
+    private calculateEngineRpmFromWheel(wheelAngularVelocity: number): number {
+        const wheelRpm = (wheelAngularVelocity * 60) / (2 * Math.PI); // Convert rad/s to RPM
+        const transmissionRatio = this.gearRatios[this.currentGear] * this.differentialRatio;
+
+        if (this.clutchInput >= 0.99) {
+            // Clutch fully disengaged, engine RPM determined by throttle
+            return this.idleRpm + (this.maxRpm - this.idleRpm) * this.throttleInput;
+        } else {
+            // Engine RPM determined by wheel speed through transmission
+            const clutchSlip = this.clutchInput * 0.5; // Some slippage based on clutch position
+            const transmissionRpm = wheelRpm * transmissionRatio;
+            const throttleRpm = this.idleRpm + (this.maxRpm - this.idleRpm) * this.throttleInput;
+
+            // Mix between transmission-driven RPM and throttle-based RPM based on clutch
+            return transmissionRpm * (1 - clutchSlip) + throttleRpm * clutchSlip;
+        }
+    }
+
+    /**
+     * Update the engine state based on vehicle state
+     * @param {number} deltaTime - Time step in seconds
+     */
+    public update(deltaTime: number): void {
+        if (!this.vehicle) {
+            return;
+        }
+
+        // // Calculate average wheel angular velocity
+        // let totalAngularVelocity = 0;
+        // let wheelCount = 0;
+        //
+        // // Get wheel info from the vehicle
+        // for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
+        //     if (this.vehicle.wheelInfos[i].engineForce !== 0) { // Only count driven wheels
+        //         totalAngularVelocity += Math.abs(this.vehicle.wheelInfos[i].deltaRotation / deltaTime);
+        //         wheelCount++;
+        //     }
+        // }
+        //
+        // // Calculate average wheel angular velocity
+        // const avgWheelAngularVelocity = wheelCount > 0 ? totalAngularVelocity / wheelCount : 0;
+        //
+        // // Update engine RPM based on wheel rotation
+        // this.currentRpm = this.calculateEngineRpmFromWheel(avgWheelAngularVelocity);
+        //
+        // // Clamp RPM to valid range
+        // this.currentRpm = Math.max(this.idleRpm, Math.min(this.maxRpm, this.currentRpm));
+        //
+        // // Calculate engine torque and wheel torque
+        const engineTorque = this.calculateEngineTorque();
+        // const wheelTorque = this.calculateWheelTorque(engineTorque);
+        //
+        // // Apply wheel torque to driven wheels
+        // const forcePerWheel = wheelTorque / this.wheelRadius / wheelCount;
+        //
+
+        // Apply engine force to wheels
+        for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
+            if (this.vehicle.wheelInfos[i].engineForce !== 0) { // Only apply to driven wheels
+                // When throttle is released, apply engine braking
+                if (this.throttleInput < 0.01) {
+                    this.vehicle.setBrake(this.engineBraking * this.maxTorque, i);
+                    this.vehicle.applyEngineForce(0, i);
+                } else {
+                    this.vehicle.setBrake(0, i);
+                    this.vehicle.applyEngineForce(-engineTorque, i);
+                }
             }
-
-            console.log(this.engineSound.isReady());
-            console.log("🚗 Engine started. RPM:", this.currentRPM);
-        }
-    }
-
-    // Shift gears (1-6 or 0 for neutral)
-    shiftGear(gear) {
-        if (gear < 0 || gear >= this.gearRatios.length) return;
-        this.currentGear = gear;
-        console.log(`⚙️ Shifted to Gear ${this.currentGear}`);
-    }
-
-    updateRPM() {
-        if (!this.engineRunning) return;
-
-        let targetRPM = 0
-        if (this.currentGear === 0) {
-            targetRPM = this.idleRPM + this.throttle * (this.maxRPM - this.idleRPM);
-        } else {
-            let ratio = this.gearRatios[this.currentGear];
-            targetRPM = this.idleRPM + this.throttle * (this.maxRPM - this.idleRPM) / ratio
         }
 
-        this.currentRPM = targetRPM
-        this.currentRPM = Math.max(this.idleRPM, Math.min(this.currentRPM, this.maxRPM));
-
-        // Simulate Redline Effect
-        if (this.currentRPM >= this.redlineRPM) {
-            console.log("🔴 Engine hitting redline! Shift up!");
-        }
+        this.updateGui()
     }
 
 
-    // Get engine torque based on current RPM
-    updateTorque() {
-        if (!this.engineRunning) return;
-
-        let keys = Object.keys(this.torqueCurve).map(Number);
-        let lower = keys.find(k => k <= this.currentRPM) ?? keys[0];
-        let upper = keys.find(k => k >= this.currentRPM) ?? keys[keys.length - 1];
-
-        if (lower === upper) return this.torqueCurve[lower];
-
-        // Linear interpolation
-        let t1 = this.torqueCurve[lower];
-        let t2 = this.torqueCurve[upper];
-        let ratio = (this.currentRPM - lower) / (upper - lower);
-        this.engineTorque = t1 + ratio * (t2 - t1);
+    updateGui() {
+        this.gearGui.onUpdate(':gear ' + this.currentGear, )
     }
-
-    // Calculate force applied to the wheels
-    updateWheelForce() {
-        if (!this.engineRunning) return;
-        if (this.currentGear === 0) return this.wheelTorque = 0; // No force in neutral
-
-        this.wheelTorque = this.engineTorque * this.gearRatios[this.currentGear] * this.differentialRatio;
-        console.log(this.wheelTorque)
-        this.wheelSpeed = (this.wheelTorque / this.wheelRadius) * this.throttle;
-    }
-
-    // Update RPM based on throttle and gear
-    update() {
-
-        this.updateRPM()
-        this.updateTorque()
-        this.updateWheelForce()
-        this.engineSound.setPlaybackRate(1 + this.currentRPM / this.maxRPM)
-
-        this.header.text = 'RPM ' + this.currentRPM
-        this.slider.value = this.currentRPM
+    /**
+     * Get current engine information
+     * @returns {EngineInfo} - Object containing engine state information
+     */
+    public getEngineInfo(): EngineInfo {
+        return {
+            rpm: this.currentRpm,
+            gear: this.currentGear + 1, // Convert 0-based to 1-based for display
+            throttle: this.throttleInput,
+            clutch: this.clutchInput
+        };
     }
 }
+
+export default Engine;

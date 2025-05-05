@@ -16,6 +16,8 @@ export default class Car {
     public chassisMesh: BABYLON.Mesh;
     private vehicle: CANNON.RaycastVehicle;
 
+    private
+
     private ray: BABYLON.Ray;
     private lastPickPosition: BABYLON.Vector3;
 
@@ -95,6 +97,8 @@ export default class Car {
         vehicle.chassisBody.quaternion = vehicle.chassisBody.quaternion.mult(BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0, 1, 0), Math.PI / 2))
         vehicle.addToWorld(GameEngine.map.world);
 
+        this.engine.attachToVehicle(vehicle);
+
 // Add 4 wheels
         const xOffset = 1.5
         const zOffset = 1
@@ -127,8 +131,8 @@ export default class Car {
     }
 
     setInitialPosition(pos) {
-        this.vehicle.setBrake(100, 0)
-        this.vehicle.setBrake(100, 2)
+        // this.vehicle.setBrake(100, 0)
+        // this.vehicle.setBrake(100, 2)
 
         setTimeout(() => {
             this.chassisBody.position.set(
@@ -149,31 +153,16 @@ export default class Car {
     }
 
     update() {
-        let carSpeed = 0; // Example: Replace with actual car speed from physics engine
-        const minPitch = 1; // Minimum playback rate
-        const maxPitch = 3; // Maximum playback rate
-        const maxThrottle = 100; // Example max speed of the car
-        const motorForce: number = 10000
+        // Appliquer les contrôles
+        this.engine.setThrottle(GameEngine.inputManager.keys.throttle ? 1 : 0);
+        this.engine.update(1/60)
+        const engineInfo = this.engine.getEngineInfo();
 
-        // Subaru WRX STI Gear Ratios
-        let throttle = 0
-        let throttleSpeed = 0.1
-        let currentGear = 1; // Start in 1st gear
-        let finalDrive = 3.90
-        let engineTorque = 400;
-        let steeringValue = 0;
-        let maxForce = engineTorque * finalDrive
+        for (const wheel of this.wheels) {
+            wheel.update()
+        }
 
         if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
-            if (GameEngine.inputManager.keys.throttle) {
-                if (this.engine.throttle < 1) {
-                    this.engine.throttle += throttleSpeed
-                }
-            } else {
-                if (this.engine.throttle > 0) {
-                    this.engine.throttle -= throttleSpeed
-                }
-            }
             // if (GameEngine.inputManager.keys.brake) {
             //     this.vehicle.setBrake(5, 0);
             //     this.vehicle.setBrake(5, 2);
@@ -206,24 +195,6 @@ export default class Car {
 
         }
 
-        // TODO engine sound based on throttle
-        // carSpeed = throttle + Math.abs(this.vehicle.currentVehicleSpeedKmHour)
-        // let pitch = minPitch + (carSpeed / maxThrottle) * (maxPitch - minPitch);
-        // engineSound.setPlaybackRate(pitch);
-
-        // Sync Babylon.js meshes with Cannon.js physics
-        this.chassisMesh.position.set(
-            this.chassisBody.position.x, 
-            this.chassisBody.position.y, 
-            this.chassisBody.position.z
-        )
-        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion(
-            this.chassisBody.quaternion.x, 
-            this.chassisBody.quaternion.y, 
-            this.chassisBody.quaternion.z, 
-            this.chassisBody.quaternion.w
-        );
-
         // remettre la voiture sur la piste
         // this.ray.origin.set(
         //     this.chassisBody.position.x,
@@ -249,12 +220,19 @@ export default class Car {
         //         this.lastPickPosition.z
         //     )
         // }
-        this.engine.update()
 
-        for (const wheel of this.wheels) {
-            this.vehicle.applyEngineForce(-this.engine.wheelTorque, wheel.id)
-            wheel.update()
-        }
+        // Sync Babylon.js meshes with Cannon.js physics
+        this.chassisMesh.position.set(
+            this.chassisBody.position.x, 
+            this.chassisBody.position.y, 
+            this.chassisBody.position.z
+        )
+        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion(
+            this.chassisBody.quaternion.x, 
+            this.chassisBody.quaternion.y, 
+            this.chassisBody.quaternion.z, 
+            this.chassisBody.quaternion.w
+        );
     }
 
 }
