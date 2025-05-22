@@ -70,36 +70,14 @@ export default class Wheel {
     update() {
         const wheelInfos = this.vehicle.wheelInfos[this.id];
 
-        // wheelInfos.engineForce = -this.car.engine.wheelTorque
-        wheelInfos.engineForce = 100
-        // update la friction en fonction de la vitesse
-        // TODO https://chatgpt.com/c/67d1ff20-1ce0-8013-a3ff-ce3d3e1e035f
-        let speed = this.vehicle.chassisBody.velocity.length();
-        let friction = this.baseFriction * Math.max(0.5, 1 - (speed / 100));
-        friction = Math.max(friction, 0.2);
-        wheelInfos.frictionSlip = friction;
-
-        // if (inputMap["z"]) {
-        //     if (wheelInfos.isFrontWheel) {
-        //         wheelInfos.frictionSlip = friction - 0.2
-        //     }
-        // }
-        // if (inputMap["s"]) {
-        //     if (wheelInfos.isFrontWheel) {
-        //         wheelInfos.frictionSlip = this.baseFriction
-        //     }
-        // }
-
         if (GameEngine.inputManager.keys.handbrake) {
-            this.vehicle.setBrake(5, 1);
-            this.vehicle.setBrake(5, 3);
+            this.vehicle.setBrake(50000, 1);
+            this.vehicle.setBrake(50000, 3);
             wheelInfos.frictionSlip = .5
         } else {
-            this.vehicle.setBrake(0, 1);
-            this.vehicle.setBrake(0, 3);
-            wheelInfos.frictionSlip = friction
+            // le frein va être reset par la voiture
+            wheelInfos.frictionSlip = this.params.frictionSlip
         }
-
 
         this.vehicle.updateWheelTransform(this.id);
         const worldTransform = wheelInfos.worldTransform;

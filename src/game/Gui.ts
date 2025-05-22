@@ -1,28 +1,22 @@
 import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
+import GameEngine from "./GameEngine.ts";
+import {RunState} from "./Stage.ts";
+import {TextBlock} from "@babylonjs/gui";
 
 class InputConnectedKeyboard extends GUI.VirtualKeyboard {
 
     constructor() {
         super();
     }
-
-    private _createKey(key, propertySet) {
-        const button = super._createKey(key, propertySet)
-        const f = (e) => {
-            console.log(e)
-            if (e.key === key) button.focus();
-        }
-        window.addEventListener("keydown", f)
-        return button
-    }
-
 }
 
 export default class Gui {
     private gui: GUI.AdvancedDynamicTexture;
     private infoPanel: GUI.StackPanel;
     private updateFunctions: Map<string, Function>;
+    private startTime: DOMHighResTimeStamp;
+    private gameTimerText: TextBlock;
 
     constructor() {
         this.updateFunctions = new Map<string, Function>()
@@ -42,6 +36,80 @@ export default class Gui {
         keyboard.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
         keyboard.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         this.gui.addControl(keyboard);
+
+        this.startTime = performance.now(); // or Date.now(), but performance.now() is better
+        this.gameTimerText = new GUI.TextBlock();
+        this.gameTimerText.text = "0";
+        this.gameTimerText.height = "30px";
+        this.gameTimerText.color = "white";
+        this.gameTimerText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        this.gameTimerText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+
+        const startHandbrakeText = new GUI.TextBlock();
+        startHandbrakeText.text = "Appuyez sur le frein main [espace] pour commencer";
+        startHandbrakeText.height = "30px";
+        startHandbrakeText.color = "white";
+        startHandbrakeText.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        startHandbrakeText.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+
+        GameEngine.eventManager.onCarInitialized.add(() => {
+            this.gui.addControl(startHandbrakeText)
+        })
+        GameEngine.eventManager.onUserHandBreakForTheFirstTime.add(() => {
+            startHandbrakeText.dispose()
+            const header = new GUI.TextBlock();
+            header.text = "5";
+            header.height = "30px";
+            header.color = "white";
+            header.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            header.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            this.gui.addControl(header)
+
+            // countdown début de la run
+            let startTimer = 5
+            const startInterval = setInterval(() => {
+                startTimer -= 1
+                header.text = startTimer
+                if (startTimer === 0) {
+                    clearInterval(startInterval)
+                    header.text  = 'GO'
+                    GameEngine.eventManager.onRunStart.notifyObservers({})
+                    setTimeout(() => {
+                        header.dispose()
+                    }, 2000)
+                    return
+                }
+            }, 1000)
+        })
+        GameEngine.eventManager.onRunStart.add(() => {
+            this.gui.addControl(this.gameTimerText)
+            this.startTime = performance.now()
+        })
+        GameEngine.eventManager.onRunEnd.add(() => {
+            const header = new GUI.TextBlock();
+            header.text = "Arrivé !";
+            header.height = "30px";
+            header.color = "white";
+            header.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            header.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            this.gui.addControl(header)
+        })
+    }
+
+    update() {
+        if (GameEngine.map.state === RunState.RUNNING) {
+            const now = performance.now();
+            const elapsed = now - this.startTime; // in milliseconds
+
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            const milliseconds = Math.floor(elapsed % 1000);
+
+            this.gameTimerText.text =
+                (minutes < 10 ? "0" : "") + minutes + ":" +
+                (seconds < 10 ? "0" : "") + seconds + "." +
+                milliseconds.toString().padStart(3, '0');
+        }
     }
 
     createSlider(min = 0, max = 10000) {

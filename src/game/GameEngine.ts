@@ -1,22 +1,24 @@
 import * as BABYLON from "@babylonjs/core";
-import * as GUI from "@babylonjs/gui";
-import Map from "./Map.ts";
+import Stage from "./Stage.ts";
 import Car from "./Car.ts";
 import CameraManager from "./CameraManager.ts";
 import InputManager from "./InputManager.ts";
 import {registerBuiltInLoaders} from "@babylonjs/loaders/dynamic";
 import Gui from "./Gui.ts";
+import EventManager from "./EventManager.ts";
 
 class GameEngine {
     public canvas: HTMLCanvasElement;
     public scene: BABYLON.Scene;
     public engine: BABYLON.Engine;
 
-    public map: Map;
+    public map: Stage;
     public car: Car;
     gui: Gui;
     cameraManager: CameraManager;
     inputManager: InputManager;
+    eventManager: EventManager;
+    gamepadManager: BABYLON.GamepadManager;
 
     constructor() {}
 
@@ -24,12 +26,14 @@ class GameEngine {
         await this.initEngine()
         await this.initScene()
 
+        this.eventManager = new EventManager()
+
         this.gui = new Gui()
 
         this.cameraManager = new CameraManager()
         this.inputManager = new InputManager()
         registerBuiltInLoaders()
-        this.map = new Map()
+        this.map = new Stage()
         this.car = new Car()
 
         await this.map.initAsync()
@@ -42,6 +46,7 @@ class GameEngine {
             this.cameraManager.update()
             this.map.update()
             this.car.update()
+            this.gui.update()
         })
 
         this.engine.runRenderLoop(() => this.scene.render());
@@ -51,7 +56,8 @@ class GameEngine {
         return new Promise((res): void => {
             this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
             this.engine = new BABYLON.Engine(this.canvas, true, {
-                audioEngine: true
+                audioEngine: true,
+                adaptToDeviceRatio: true,
             });
             window.addEventListener("resize", () => this.engine.resize());
             return res()
@@ -78,10 +84,10 @@ class GameEngine {
             const hemisphereLight = new BABYLON.HemisphericLight("light",
                 new BABYLON.Vector3(0, 1, 0), scene);
             hemisphereLight.intensity = 0.7;
-            // const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
-            // light.position.y = 50
-            // const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
-            // shadowGenerator.useContactHardeningShadow = true;
+            const light = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+            light.position.y = 50
+            const shadowGenerator = new BABYLON.ShadowGenerator(2048, light, true, scene.activeCamera);
+            shadowGenerator.useContactHardeningShadow = true;
             return res()
         })
     }

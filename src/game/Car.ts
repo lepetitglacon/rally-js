@@ -6,6 +6,7 @@ import GameEngine from "./GameEngine";
 import subaru from '@/assets/gltf/subaru.glb?url'
 
 import CarEngine from "./CarEngine.ts";
+import {RunState} from "./Stage.ts";
 
 export default class Car {
     private wheels: Wheel[]
@@ -16,10 +17,12 @@ export default class Car {
     public chassisMesh: BABYLON.Mesh;
     private vehicle: CANNON.RaycastVehicle;
 
-    private
+    private isInInitMode = true;
 
     private ray: BABYLON.Ray;
     private lastPickPosition: BABYLON.Vector3;
+
+    private breakForce: number = 10;
 
     private engineSound: BABYLON.Sound;
 
@@ -131,8 +134,11 @@ export default class Car {
     }
 
     setInitialPosition(pos) {
-        // this.vehicle.setBrake(100, 0)
-        // this.vehicle.setBrake(100, 2)
+        this.isInInitMode = true
+        this.vehicle.setBrake(100, 0)
+        this.vehicle.setBrake(100, 1)
+        this.vehicle.setBrake(100, 2)
+        this.vehicle.setBrake(100, 3)
 
         setTimeout(() => {
             this.chassisBody.position.set(
@@ -142,6 +148,7 @@ export default class Car {
             )
             this.chassisBody.type = CANNON.BODY_TYPES.DYNAMIC
         }, 500)
+        GameEngine.eventManager.onCarInitialized.notifyObservers({})
     }
 
     getDirection() {
@@ -153,8 +160,17 @@ export default class Car {
     }
 
     update() {
+
+        if (GameEngine.inputManager.keys.handbrake && GameEngine.map.state === RunState.INIT) {
+            this.vehicle.setBrake(0, 0)
+            this.vehicle.setBrake(0, 1)
+            this.vehicle.setBrake(0, 2)
+            this.vehicle.setBrake(0, 3)
+            GameEngine.eventManager.onUserHandBreakForTheFirstTime.notifyObservers({})
+        }
+
         // Appliquer les contrôles
-        this.engine.setThrottle(GameEngine.inputManager.keys.throttle ? 1 : 0);
+        this.engine.setThrottle(GameEngine.inputManager.keys.throttle);
         this.engine.update(1/60)
         const engineInfo = this.engine.getEngineInfo();
 
@@ -162,40 +178,30 @@ export default class Car {
             wheel.update()
         }
 
+        if (GameEngine.map.state === RunState.INIT) {
+            this.vehicle.setBrake(100, 0)
+            this.vehicle.setBrake(100, 1)
+            this.vehicle.setBrake(100, 2)
+            this.vehicle.setBrake(100, 3)
+        }
+
         if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
-            // if (GameEngine.inputManager.keys.brake) {
-            //     this.vehicle.setBrake(5, 0);
-            //     this.vehicle.setBrake(5, 2);
-            //     this.vehicle.setBrake(5, 1);
-            //     this.vehicle.setBrake(5, 3);
-            // } else {
-            //     this.vehicle.setBrake(0, 0);
-            //     this.vehicle.setBrake(0, 2);
-            //     this.vehicle.setBrake(0, 1);
-            //     this.vehicle.setBrake(0, 3);
-            // }
-            // if (!GameEngine.inputManager.keys.throttle && !GameEngine.inputManager.keys.brake) {
-            //     this.vehicle.applyEngineForce(0, 0);
-            //     this.vehicle.applyEngineForce(0, 2);
-            //     this.vehicle.applyEngineForce(0, 1);
-            //     this.vehicle.applyEngineForce(0, 3);
-            // }
-            if (GameEngine.inputManager.keys.left) {
-                this.vehicle.setSteeringValue(-0.5, 0);
-                this.vehicle.setSteeringValue(-0.5, 2);
-            }
-            if (GameEngine.inputManager.keys.right) {
-                this.vehicle.setSteeringValue(0.5, 0);
-                this.vehicle.setSteeringValue(0.5, 2);
-            }
-            if (!GameEngine.inputManager.keys.right && !GameEngine.inputManager.keys.left) {
+            // brake
+            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 0);
+            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 2);
+            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 1);
+            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 3);
+            // steering
+            if (GameEngine.inputManager.keys.steering < -GameEngine.inputManager.deadZoneMinX || GameEngine.inputManager.keys.steering > GameEngine.inputManager.deadZoneMinX) {
+                this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 0);
+                this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 2);
+            } else {
                 this.vehicle.setSteeringValue(0, 0);
                 this.vehicle.setSteeringValue(0, 2);
             }
-
         }
 
-        // remettre la voiture sur la piste
+        // // remettre la voiture sur la piste
         // this.ray.origin.set(
         //     this.chassisBody.position.x,
         //     this.chassisBody.position.y,

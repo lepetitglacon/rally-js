@@ -30,8 +30,15 @@ export default class CameraManager {
         window.addEventListener("click", () => {
             if (GameEngine.scene.activeCamera === this.flyCamera) {
                 GameEngine.canvas.requestPointerLock()
+
+                var hit = GameEngine.scene.pick(GameEngine.scene.pointerX, GameEngine.scene.pointerY);
+                console.log(hit)
             }
         });
+
+        GameEngine.eventManager.onRunEnd.add(() => {
+
+        })
     }
 
     update() {

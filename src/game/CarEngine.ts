@@ -85,7 +85,6 @@ class Engine {
         this.wheelTorqueGui = GameEngine.gui.createSlider()
 
         GameEngine.scene.onPointerObservable.add((e) => {
-            console.log(e)
             if (e.type === BABYLON.PointerEventTypes.POINTERDOWN) {
                 switch (e.event.button) {
                     case 0:
@@ -192,41 +191,6 @@ class Engine {
     }
 
     /**
-     * Calculate wheel torque based on engine torque and transmission
-     * @param {number} engineTorque - Current engine torque
-     * @returns {number} - Torque at the wheels
-     */
-    private calculateWheelTorque(engineTorque: number): number {
-        const transmissionRatio = this.gearRatios[this.currentGear] * this.differentialRatio;
-        const clutchEffect = 1 - this.clutchInput;
-
-        return engineTorque * transmissionRatio * clutchEffect;
-    }
-
-    /**
-     * Calculate engine RPM based on wheel rotation speed
-     * @param {number} wheelAngularVelocity - Angular velocity of the wheel (rad/s)
-     * @returns {number} - Engine RPM
-     */
-    private calculateEngineRpmFromWheel(wheelAngularVelocity: number): number {
-        const wheelRpm = (wheelAngularVelocity * 60) / (2 * Math.PI); // Convert rad/s to RPM
-        const transmissionRatio = this.gearRatios[this.currentGear] * this.differentialRatio;
-
-        if (this.clutchInput >= 0.99) {
-            // Clutch fully disengaged, engine RPM determined by throttle
-            return this.idleRpm + (this.maxRpm - this.idleRpm) * this.throttleInput;
-        } else {
-            // Engine RPM determined by wheel speed through transmission
-            const clutchSlip = this.clutchInput * 0.5; // Some slippage based on clutch position
-            const transmissionRpm = wheelRpm * transmissionRatio;
-            const throttleRpm = this.idleRpm + (this.maxRpm - this.idleRpm) * this.throttleInput;
-
-            // Mix between transmission-driven RPM and throttle-based RPM based on clutch
-            return transmissionRpm * (1 - clutchSlip) + throttleRpm * clutchSlip;
-        }
-    }
-
-    /**
      * Update the engine state based on vehicle state
      * @param {number} deltaTime - Time step in seconds
      */
@@ -235,47 +199,19 @@ class Engine {
             return;
         }
 
-        // // Calculate average wheel angular velocity
-        // let totalAngularVelocity = 0;
-        // let wheelCount = 0;
-        //
-        // // Get wheel info from the vehicle
-        // for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
-        //     if (this.vehicle.wheelInfos[i].engineForce !== 0) { // Only count driven wheels
-        //         totalAngularVelocity += Math.abs(this.vehicle.wheelInfos[i].deltaRotation / deltaTime);
-        //         wheelCount++;
-        //     }
-        // }
-        //
-        // // Calculate average wheel angular velocity
-        // const avgWheelAngularVelocity = wheelCount > 0 ? totalAngularVelocity / wheelCount : 0;
-        //
-        // // Update engine RPM based on wheel rotation
-        // this.currentRpm = this.calculateEngineRpmFromWheel(avgWheelAngularVelocity);
-        //
-        // // Clamp RPM to valid range
-        // this.currentRpm = Math.max(this.idleRpm, Math.min(this.maxRpm, this.currentRpm));
-        //
-        // // Calculate engine torque and wheel torque
-        const engineTorque = this.calculateEngineTorque();
-        // const wheelTorque = this.calculateWheelTorque(engineTorque);
-        //
-        // // Apply wheel torque to driven wheels
-        // const forcePerWheel = wheelTorque / this.wheelRadius / wheelCount;
-        //
+        // Calculate engine torque and wheel torque
+        const engineTorque = this.calculateEngineTorque() * 100;
 
         // Apply engine force to wheels
         for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {
-            if (this.vehicle.wheelInfos[i].engineForce !== 0) { // Only apply to driven wheels
-                // When throttle is released, apply engine braking
-                if (this.throttleInput < 0.01) {
-                    this.vehicle.setBrake(this.engineBraking * this.maxTorque, i);
-                    this.vehicle.applyEngineForce(0, i);
-                } else {
-                    this.vehicle.setBrake(0, i);
-                    this.vehicle.applyEngineForce(-engineTorque, i);
-                }
+
+            if (GameEngine.inputManager.keys.brake) {
+                this.vehicle.setBrake(25, i);
+            } else {
+                this.vehicle.setBrake(0, i);
             }
+            //
+            this.throttleInput < 0.01 ? this.vehicle.applyEngineForce(0, i) : this.vehicle.applyEngineForce(-engineTorque, i)
         }
 
         this.updateGui()
@@ -283,7 +219,11 @@ class Engine {
 
 
     updateGui() {
-        this.gearGui.onUpdate(':gear ' + this.currentGear, )
+        this.gearGui.onUpdate(':gear ' + this.currentGear)
+        this.speedGui.onUpdate(':speed ' + this.vehicle?.currentVehicleSpeedKmHour.toFixed(2))
+        this.rpmGui.onUpdate(':rpm ' + this.currentRpm.toFixed(2))
+        this.throttleGui.onUpdate(':throttle ' + this.throttleInput.toFixed(2))
+        this.engineTorqueGui.onUpdate(':engineTorqueGui ' + this.calculateEngineTorque().toFixed(2))
     }
     /**
      * Get current engine information
