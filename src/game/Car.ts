@@ -7,6 +7,7 @@ import subaru from '@/assets/gltf/subaru.glb?url'
 
 import CarEngine from "./CarEngine.ts";
 import {RunState} from "./Stage.ts";
+import type {RaycastResult} from "collision/RaycastResult";
 
 export default class Car {
     private wheels: Wheel[]
@@ -21,8 +22,12 @@ export default class Car {
 
     private ray: BABYLON.Ray;
     private lastPickPosition: BABYLON.Vector3;
+    private lastSafeState = {
+        position: new CANNON.Vec3(),
+        quaternion: new CANNON.Quaternion()
+    };
 
-    private breakForce: number = 10;
+    private breakForce: number = 5;
 
     private engineSound: BABYLON.Sound;
 
@@ -42,7 +47,7 @@ export default class Car {
         this.chassisBody = chassisBody
         chassisBody.addShape(chassisShape);
         chassisBody.position.set(0, 2, 0);
-        GameEngine.map.world.addBody(chassisBody);
+        GameEngine.stage.world.addBody(chassisBody);
 
         const chassisMesh = BABYLON.MeshBuilder.CreateBox("chassis", {
             width: config.shape.x * 2,
@@ -98,7 +103,7 @@ export default class Car {
         const vehicle = new CANNON.RaycastVehicle({chassisBody: this.chassisBody});
         this.vehicle = vehicle
         vehicle.chassisBody.quaternion = vehicle.chassisBody.quaternion.mult(BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0, 1, 0), Math.PI / 2))
-        vehicle.addToWorld(GameEngine.map.world);
+        vehicle.addToWorld(GameEngine.stage.world);
 
         this.engine.attachToVehicle(vehicle);
 
@@ -159,9 +164,130 @@ export default class Car {
         return new BABYLON.Vector3(worldForward.x, worldForward.y, worldForward.z);
     }
 
+    performRaycastsAroundCar(): {
+        forward: RaycastResult | null,
+        backward: RaycastResult | null,
+        left: RaycastResult | null,
+        right: RaycastResult | null,
+        up: RaycastResult | null,
+        down: RaycastResult | null,
+    } {
+        const rayLength = 2; // How far to cast
+        const rayStart = this.chassisBody.position.clone();
+        const carQuat = this.chassisBody.quaternion;
+        const directions = {
+            // Axis-aligned
+            forward:     new CANNON.Vec3(0, 0, 1),
+            backward:    new CANNON.Vec3(0, 0, -1),
+            left:        new CANNON.Vec3(-1, 0, 0),
+            right:       new CANNON.Vec3(1, 0, 0),
+            up:          new CANNON.Vec3(0, 1, 0),
+            down:        new CANNON.Vec3(0, -1, 0),
+            forwardLeft:  new CANNON.Vec3(-1, 0, 1),
+            forwardRight: new CANNON.Vec3(1, 0, 1),
+            backLeft:     new CANNON.Vec3(-1, 0, -1),
+            backRight:    new CANNON.Vec3(1, 0, -1),
+            upForward:  new CANNON.Vec3(0, 1, 1),
+            upBackward: new CANNON.Vec3(0, 1, -1),
+            upLeft:     new CANNON.Vec3(-1, 1, 0),
+            upRight:    new CANNON.Vec3(1, 1, 0),
+            downForward:  new CANNON.Vec3(0, -1, 1),
+            downBackward: new CANNON.Vec3(0, -1, -1),
+            downLeft:     new CANNON.Vec3(-1, -1, 0),
+            downRight:    new CANNON.Vec3(1, -1, 0),
+        };
+        let results: {
+            forward: RaycastResult | null,
+            backward: RaycastResult | null,
+            left: RaycastResult | null,
+            right: RaycastResult | null,
+            up: RaycastResult | null,
+            down: RaycastResult | null,
+        } = {};
+        for (let dirName in directions) {
+            const dir = directions[dirName];
+            let worldDir = new CANNON.Vec3();
+            carQuat.vmult(dir, worldDir);
+            const from = rayStart.clone();
+            const to = rayStart.vadd(worldDir.scale(rayLength));
+            const ray = new CANNON.Ray(from, to);
+            ray.intersectWorld(GameEngine.stage.world, {
+                collisionFilterMask: -1,
+                skipBackfaces: true,
+            });
+            this.drawRay(from, to, ray.hasHit)
+            results[dirName] = ray.hasHit ? ray.result : null;
+        }
+        for (const [directionKey, raycastResult] of Object.entries(results)) {
+            if (directionKey.includes('down')) { continue }
+            if (raycastResult) {
+                const hitNormal = raycastResult.hitNormalWorld;
+                const carUp = new CANNON.Vec3(0, 1, 0);
+                this.chassisBody.quaternion.vmult(carUp, carUp);
+                const dot = hitNormal.dot(carUp);
+
+                if (directionKey === 'up') {
+                    const isUpsideDown = dot < 0.5;
+                    if (isUpsideDown) {
+                        const forceMagnitude = 1000; // tweak based on mass and bounce
+                        const downVector = hitNormal.scale(-forceMagnitude);
+                        this.chassisBody.applyForce(downVector, this.chassisBody.position);
+                        console.log('car is upside down')
+                    }
+                } else {
+                    const forceMagnitude = 200; // tweak based on mass and bounce
+                    const downVector = hitNormal.scale(forceMagnitude);
+                    this.chassisBody.applyForce(downVector, this.chassisBody.position);
+                    console.log('car us pushed from side', directionKey)
+                }
+            }
+        }
+        return results;
+    }
+    drawRay(from, to, hit) {
+        const lines = BABYLON.MeshBuilder.CreateLines("ray", {
+            points: [
+                new BABYLON.Vector3(from.x, from.y, from.z),
+                new BABYLON.Vector3(to.x, to.y, to.z),
+            ]
+        }, GameEngine.scene);
+        lines.color = hit ? BABYLON.Color3.Red() : BABYLON.Color3.Green();
+        setTimeout(() => lines.dispose(), 1); // Dispose after 100ms
+    }
+
+    updateSafeStateIfGrounded() {
+        const isOnGround = this.vehicle.numWheelsOnGround > 0;
+
+        if (isOnGround) {
+            this.lastSafeState.position.copy(this.chassisBody.position);
+            this.lastSafeState.quaternion.copy(this.chassisBody.quaternion);
+        }
+    }
+    checkAndResetIfFlipped() {
+        const up = new CANNON.Vec3(0, 1, 0);
+        const carUp = new CANNON.Vec3();
+        this.chassisBody.quaternion.vmult(up, carUp);
+
+        // If dot < 0.3, car is significantly upside down
+        if (carUp.dot(up) < 0.5 && !this.lastSafeState.hasReseted) {
+            console.log("Flipped! Resetting...");
+            this.chassisBody.position.copy(this.lastSafeState.position);
+            this.chassisBody.position.y += 10;
+            this.chassisBody.quaternion.set(0,0,0,0);
+            this.chassisBody.velocity.setZero();
+            this.chassisBody.angularVelocity.setZero();
+            this.vehicle.wheelInfos.forEach((wheel, i) => {
+                wheel.suspensionLength = wheel.suspensionRestLength;
+                // wheel.raycastResult = null; // Clear old raycast result
+                this.vehicle.updateWheelTransform(i);
+            });
+            this.lastSafeState.hasReseted = true
+        }
+    }
+
     update() {
 
-        if (GameEngine.inputManager.keys.handbrake && GameEngine.map.state === RunState.INIT) {
+        if (GameEngine.inputManager.keys.handbrake && GameEngine.stage.state === RunState.INIT) {
             this.vehicle.setBrake(0, 0)
             this.vehicle.setBrake(0, 1)
             this.vehicle.setBrake(0, 2)
@@ -178,7 +304,7 @@ export default class Car {
             wheel.update()
         }
 
-        if (GameEngine.map.state === RunState.INIT) {
+        if (GameEngine.stage.state === RunState.INIT) {
             this.vehicle.setBrake(100, 0)
             this.vehicle.setBrake(100, 1)
             this.vehicle.setBrake(100, 2)
@@ -202,30 +328,8 @@ export default class Car {
         }
 
         // // remettre la voiture sur la piste
-        // this.ray.origin.set(
-        //     this.chassisBody.position.x,
-        //     this.chassisBody.position.y,
-        //     this.chassisBody.position.z
-        // )
-        // const pick = GameEngine.scene.pickWithRay(
-        //     this.ray,
-        //     (m) => m === GameEngine.map.terrainMesh
-        // )
-        // if (pick.hit) {
-        //     this.lastPickPosition.set(
-        //         this.chassisBody.position.x,
-        //         this.chassisBody.position.y,
-        //         this.chassisBody.position.z
-        //     )
-        // } else {
-        //     // this.chassisBody.quaternion.copy(initialCarQuaternion)
-        //     this.chassisBody.velocity.set(0, 0, 0)
-        //     this.chassisBody.position.set(
-        //         this.lastPickPosition.x,
-        //         this.lastPickPosition.y + 2,
-        //         this.lastPickPosition.z
-        //     )
-        // }
+        this.updateSafeStateIfGrounded()
+        this.checkAndResetIfFlipped()
 
         // Sync Babylon.js meshes with Cannon.js physics
         this.chassisMesh.position.set(

@@ -73,8 +73,10 @@ export default class Stage {
             switch (mesh.metadata.gltf.extras.type) {
                 case 'Terrain': {
                     this.terrainMesh = mesh
-                    // this.world.addBody(this.buildTerrainAsConvexShape(mesh))
                     this.world.addBody(this.buildTerrainAsTrimesh(mesh))
+                    // this.world.addBody(this.buildTerrainAsConvexShape(mesh))
+                    // this.world.addBody(this.buildTerrainAsHeightfieldRectangular(mesh, 100, 100))
+                    // this.world.addBody(this.buildTerrainAsHeightfield(mesh))
                     break
                 }
                 case 'Road': {
@@ -102,6 +104,61 @@ export default class Stage {
         }
         console.log('map loaded')
 
+    }
+    buildTerrainAsHeightfieldRectangular(mesh: BABYLON.Mesh, rows: number, columns: number): CANNON.Body {
+        const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        const worldMatrix = mesh.getWorldMatrix();
+
+        // Validate vertex count
+        if (vertices.length / 3 !== rows * columns) {
+            throw new Error(`Vertex count ${vertices.length/3} does not match rows*columns (${rows}*${columns})`);
+        }
+
+        // Build height matrix rows x columns
+        const heights: number[][] = [];
+        for (let row = 0; row < rows; row++) {
+            heights[row] = [];
+            for (let col = 0; col < columns; col++) {
+                const idx = (row * columns + col) * 3;
+                const vertex = new BABYLON.Vector3(vertices[idx], vertices[idx + 1], vertices[idx + 2]);
+                const transformed = BABYLON.Vector3.TransformCoordinates(vertex, worldMatrix);
+                heights[row][col] = transformed.y;
+            }
+        }
+
+        // Calculate element size (assumes uniform spacing in X and Z directions)
+        // Let's calculate element sizeX between first two columns of first row:
+        const p0 = new BABYLON.Vector3(vertices[0], vertices[1], vertices[2]);
+        const p1 = new BABYLON.Vector3(vertices[3], vertices[4], vertices[5]);
+        const p0w = BABYLON.Vector3.TransformCoordinates(p0, worldMatrix);
+        const p1w = BABYLON.Vector3.TransformCoordinates(p1, worldMatrix);
+        const elementSizeX = Math.abs(p1w.x - p0w.x);
+
+        // Calculate element sizeZ between first two rows of first column:
+        // Check vertex at row 0, col 0 and row 1, col 0
+        const p2 = new BABYLON.Vector3(vertices[columns * 3], vertices[columns * 3 + 1], vertices[columns * 3 + 2]);
+        const p2w = BABYLON.Vector3.TransformCoordinates(p2, worldMatrix);
+        const elementSizeZ = Math.abs(p2w.z - p0w.z);
+
+        // For CANNON.Heightfield, elementSize is square, so pick average or smaller
+        const elementSize = Math.min(elementSizeX, elementSizeZ);
+
+        // Create Heightfield shape
+        const heightfieldShape = new CANNON.Heightfield(heights, { elementSize });
+
+        // Create static body
+        const body = new CANNON.Body({ mass: 0 });
+        body.addShape(heightfieldShape);
+
+        // Position the heightfield body at mesh minimum corner (X,Z), Y can be min Y or 0
+        const meshBoundingInfo = mesh.getBoundingInfo();
+        const min = meshBoundingInfo.minimumWorld;
+
+        // Important: Heightfield height data is relative to body.position.y
+        // So if min.y is not zero, you can adjust accordingly or offset heights
+        body.position.set(min.x, min.y, min.z);
+
+        return body;
     }
 
     buildTerrainAsTrimesh(mesh: Mesh) {
@@ -131,6 +188,58 @@ export default class Stage {
             shape: trimeshShape
         });
         return body
+    }
+
+    buildTerrainAsHeightfield(mesh: BABYLON.Mesh): CANNON.Body {
+        const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        const worldMatrix = mesh.getWorldMatrix();
+        const vertexCount = vertices.length / 3;
+        const gridSize = Math.sqrt(vertexCount);
+        if (!Number.isInteger(gridSize)) {
+            throw new Error("Mesh vertices count is not a perfect square, cannot build Heightfield.");
+        }
+        // Transform all vertices to world space and organize heights into 2D matrix
+        const heights: number[][] = [];
+        for (let row = 0; row < gridSize; row++) {
+            heights[row] = [];
+            for (let col = 0; col < gridSize; col++) {
+                // Index in flat array
+                const i = (row * gridSize + col) * 3;
+                const vertex = new BABYLON.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+                const transformed = BABYLON.Vector3.TransformCoordinates(vertex, worldMatrix);
+
+                // We build matrix by heights in Y axis
+                heights[row][col] = transformed.y;
+            }
+        }
+
+        // Calculate element size (distance between points in X and Z)
+        // Assuming uniform spacing, calculate difference between first two points in X and Z axis
+        const p0 = new BABYLON.Vector3(vertices[0], vertices[1], vertices[2]);
+        const p1 = new BABYLON.Vector3(vertices[3], vertices[4], vertices[5]);
+        const p0w = BABYLON.Vector3.TransformCoordinates(p0, worldMatrix);
+        const p1w = BABYLON.Vector3.TransformCoordinates(p1, worldMatrix);
+
+        const elementSizeX = Math.abs(p1w.x - p0w.x);
+        // We assume element size is uniform, same for Z spacing (could check another point)
+        const elementSize = elementSizeX;
+
+        // Create heightfield shape
+        const heightfieldShape = new CANNON.Heightfield(heights, { elementSize });
+
+        // Create static body for terrain
+        const body = new CANNON.Body({ mass: 0 });
+        body.addShape(heightfieldShape);
+
+        // Position the heightfield body correctly (based on mesh bounding info)
+        // Heightfield by default is positioned at (0,0,0), you might want to adjust it:
+
+        const meshBoundingInfo = mesh.getBoundingInfo();
+        const min = meshBoundingInfo.minimumWorld;
+        // Position at bottom-left corner in X,Z (Y ignored because heights already used)
+        body.position.set(min.x, min.y, min.z);
+
+        return body;
     }
 
     buildTerrainAsConvexShape(mesh: Mesh) {

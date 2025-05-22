@@ -12,7 +12,7 @@ class GameEngine {
     public scene: BABYLON.Scene;
     public engine: BABYLON.Engine;
 
-    public map: Stage;
+    public stage: Stage;
     public car: Car;
     gui: Gui;
     cameraManager: CameraManager;
@@ -33,18 +33,18 @@ class GameEngine {
         this.cameraManager = new CameraManager()
         this.inputManager = new InputManager()
         registerBuiltInLoaders()
-        this.map = new Stage()
+        this.stage = new Stage()
         this.car = new Car()
 
-        await this.map.initAsync()
+        await this.stage.initAsync()
         await this.car.initAsync()
 
-        this.car.setInitialPosition(this.map.startMesh.getAbsolutePosition())
+        this.car.setInitialPosition(this.stage.startMesh.getAbsolutePosition())
 
         this.scene.onBeforeRenderObservable.add(() => {
             this.inputManager.update()
             this.cameraManager.update()
-            this.map.update()
+            this.stage.update()
             this.car.update()
             this.gui.update()
         })

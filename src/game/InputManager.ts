@@ -21,7 +21,7 @@ export default class InputManager {
     private gamepadManager: GamepadManager;
     public gamepad: undefined|Gamepad;
 
-    public deadZoneMinX: number = 0.2;
+    public deadZoneMinX: number = 0.1;
     public deadZoneMaxX: number = .8;
 
     constructor() {

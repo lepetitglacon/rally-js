@@ -97,7 +97,7 @@ export default class Gui {
     }
 
     update() {
-        if (GameEngine.map.state === RunState.RUNNING) {
+        if (GameEngine.stage.state === RunState.RUNNING) {
             const now = performance.now();
             const elapsed = now - this.startTime; // in milliseconds
 
