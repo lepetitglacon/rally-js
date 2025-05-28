@@ -1,6 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import type {RaycastVehicle} from "objects/RaycastVehicle";
 import GameEngine from "./GameEngine.ts";
+import type {TextBlock} from "@babylonjs/gui";
 
 interface EngineOptions {
     maxRpm?: number;
@@ -23,29 +24,29 @@ interface EngineInfo {
 
 class Engine {
     // Engine parameters
-    private maxRpm: number;
-    private idleRpm: number;
-    private redlineRpm: number;
-    private maxTorque: number;
-    private engineBraking: number;
+    maxRpm: number;
+    idleRpm: number;
+    redlineRpm: number;
+    maxTorque: number;
+    engineBraking: number;
 
     // Transmission parameters
-    private gearRatios: number[];
-    private differentialRatio: number;
-    private currentGear: number;
+    gearRatios: number[];
+    differentialRatio: number;
+    currentGear: number;
 
     // Vehicle parameters
-    private wheelRadius: number;
+    wheelRadius: number;
 
     // Runtime state
-    private currentRpm: number;
-    private throttleInput: number;
-    private clutchInput: number;
+    currentRpm: number;
+    throttleInput: number;
+    clutchInput: number;
 
     // Vehicle reference
-    private vehicle: RaycastVehicle | null;
-    private gearGui: { header: TextBlock; onUpdate: (headerValue, sliderValue) => void };
-    private running: boolean;
+    vehicle: RaycastVehicle | null;
+    gearGui: { header: TextBlock; onUpdate: (headerValue, sliderValue) => void };
+    running: boolean;
 
     /**
      * Class representing a vehicle engine that manages power transfer between engine and wheels
@@ -72,10 +73,13 @@ class Engine {
         this.currentRpm = this.idleRpm;
         this.throttleInput = 0;
         this.clutchInput = 0; // 0 = fully engaged, 1 = fully disengaged
+        this.rpm = 0; // 0 = fully engaged, 1 = fully disengaged
+        this.engineTorque = 0; // 0 = fully engaged, 1 = fully disengaged
 
         // Vehicle reference (to be set later)
         this.vehicle = null;
 
+        this.compteur = GameEngine.gui.createCarThrottle()
         this.gearGui = GameEngine.gui.createSlider()
         this.speedGui = GameEngine.gui.createSlider()
 
@@ -201,6 +205,7 @@ class Engine {
 
         // Calculate engine torque and wheel torque
         const engineTorque = this.calculateEngineTorque() * 100;
+        this.engineTorque = engineTorque
 
         // Apply engine force to wheels
         for (let i = 0; i < this.vehicle.wheelInfos.length; i++) {

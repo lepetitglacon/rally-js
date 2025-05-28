@@ -3,6 +3,7 @@ import * as CANNON from "cannon-es";
 import type {WheelInfoOptions} from "objects/WheelInfo";
 import GameEngine from "./GameEngine.ts";
 import type Car from "./Car.ts";
+import {Lerp} from "@babylonjs/core/Maths/math.scalar.functions";
 
 export default class Wheel {
     private params: CANNON.WheelInfoOptions;
@@ -29,7 +30,7 @@ export default class Wheel {
             suspensionRestLength: 0.3,
             suspensionMaxLength: 0.5,
             maxSuspensionForce: 100000,
-            frictionSlip: 3,
+            frictionSlip: 5,
             dampingRelaxation: 2.3,
             dampingCompression: 4.4,
             maxSuspensionTravel: 0.5,
@@ -67,16 +68,26 @@ export default class Wheel {
         this.id = this.vehicle.addWheel(this.params);
     }
 
+    getFrictionSlip() {
+        if (-this.car.vehicle.currentVehicleSpeedKmHour < 30) return this.baseFriction
+        else if (-this.car.vehicle.currentVehicleSpeedKmHour < 50) return this.baseFriction - 0.5
+        else if (-this.car.vehicle.currentVehicleSpeedKmHour < 70) return this.baseFriction - 1
+        else if (-this.car.vehicle.currentVehicleSpeedKmHour < 90) return this.baseFriction - 2
+        else if (-this.car.vehicle.currentVehicleSpeedKmHour < 110) return this.baseFriction - 3
+        else return 0.5
+    }
+
     update() {
         const wheelInfos = this.vehicle.wheelInfos[this.id];
 
+        wheelInfos.frictionSlip = this.getFrictionSlip()
         if (GameEngine.inputManager.keys.handbrake) {
             this.vehicle.setBrake(50000, 1);
             this.vehicle.setBrake(50000, 3);
             wheelInfos.frictionSlip = .5
-        } else {
-            // le frein va être reset par la voiture
-            wheelInfos.frictionSlip = this.params.frictionSlip
+        }
+        if (GameEngine.inputManager.keys.brake && !GameEngine.inputManager.keys.handbrake) {
+            wheelInfos.frictionSlip = .5
         }
 
         this.vehicle.updateWheelTransform(this.id);

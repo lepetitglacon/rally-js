@@ -10,24 +10,24 @@ import {RunState} from "./Stage.ts";
 import type {RaycastResult} from "collision/RaycastResult";
 
 export default class Car {
-    private wheels: Wheel[]
-    private engine: CarEngine;
+    wheels: Wheel[]
+    engine: CarEngine;
 
-    private chassisShape: CANNON.Box;
-    private chassisBody: CANNON.Body;
-    public chassisMesh: BABYLON.Mesh;
-    private vehicle: CANNON.RaycastVehicle;
+    chassisShape: CANNON.Box;
+    chassisBody: CANNON.Body;
+    chassisMesh: BABYLON.Mesh;
+    vehicle: CANNON.RaycastVehicle;
 
-    private isInInitMode = true;
+    isInInitMode = true;
 
-    private ray: BABYLON.Ray;
-    private lastPickPosition: BABYLON.Vector3;
-    private lastSafeState = {
+    ray: BABYLON.Ray;
+    lastPickPosition: BABYLON.Vector3;
+    lastSafeState = {
         position: new CANNON.Vec3(),
         quaternion: new CANNON.Quaternion()
     };
 
-    private breakForce: number = 5;
+    private breakForce: number = 500;
 
     private engineSound: BABYLON.Sound;
 
@@ -328,8 +328,8 @@ export default class Car {
         }
 
         // // remettre la voiture sur la piste
-        this.updateSafeStateIfGrounded()
-        this.checkAndResetIfFlipped()
+        // this.updateSafeStateIfGrounded()
+        // this.checkAndResetIfFlipped()
 
         // Sync Babylon.js meshes with Cannon.js physics
         this.chassisMesh.position.set(

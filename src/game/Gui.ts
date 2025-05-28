@@ -3,6 +3,7 @@ import * as BABYLON from "@babylonjs/core";
 import GameEngine from "./GameEngine.ts";
 import {RunState} from "./Stage.ts";
 import {TextBlock} from "@babylonjs/gui";
+import {Color3, Vector2} from "@babylonjs/core";
 
 class InputConnectedKeyboard extends GUI.VirtualKeyboard {
 
@@ -96,22 +97,6 @@ export default class Gui {
         })
     }
 
-    update() {
-        if (GameEngine.stage.state === RunState.RUNNING) {
-            const now = performance.now();
-            const elapsed = now - this.startTime; // in milliseconds
-
-            const minutes = Math.floor(elapsed / 60000);
-            const seconds = Math.floor((elapsed % 60000) / 1000);
-            const milliseconds = Math.floor(elapsed % 1000);
-
-            this.gameTimerText.text =
-                (minutes < 10 ? "0" : "") + minutes + ":" +
-                (seconds < 10 ? "0" : "") + seconds + "." +
-                milliseconds.toString().padStart(3, '0');
-        }
-    }
-
     createSlider(min = 0, max = 10000) {
         const container = new GUI.StackPanel();
         container.isVertical = false;
@@ -146,6 +131,91 @@ export default class Gui {
             header,
             slider,
             onUpdate
+        }
+    }
+
+    createCarThrottle() {
+        const padding = 50
+        const size = 300
+        const container = new GUI.Rectangle();
+        container.width = `${size + padding}px`;
+        container.height = `${size + padding}px`;
+        container.thickness = 0;
+        container.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        container.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        container.paddingRight = `${padding}px`;
+        container.paddingBottom = `${padding}px`;
+        this.gui.addControl(container);
+
+        const offsetX = 300/2;
+        const offsetY = 300/2;
+
+        function drawArc(container, startDeg, endDeg, radius, color, steps = 150, width = 10) {
+            const step = (endDeg - startDeg) / steps;
+            for (let i = 0; i < steps; i++) {
+                const a1 = BABYLON.Angle.FromDegrees(startDeg + 90 + i * step).radians();
+                const a2 = BABYLON.Angle.FromDegrees(startDeg + 90 + (i + 1) * step).radians();
+                const p1 = new BABYLON.Vector2(Math.cos(a1), Math.sin(a1)).scale(radius);
+                const p2 = new BABYLON.Vector2(Math.cos(a2), Math.sin(a2)).scale(radius);
+                const line = new GUI.Line();
+                line.x1 = p1.x + offsetX;
+                line.y1 = -p1.y + offsetY;
+                line.x2 = p2.x + offsetX;
+                line.y2 = -p2.y + offsetY;
+                line.color = color;
+                line.lineWidth = width;
+                container.addControl(line);
+            }
+        }
+        const start = 90
+        const middleStart = 0
+        const middleEnd = -45
+        const end = -90
+        drawArc(container, start, middleStart, 100, "green");
+        drawArc(container, middleStart, middleEnd, 100, "orange");
+        drawArc(container, middleEnd, end, 100, "red");
+
+        const needle = new GUI.Line();
+        needle.x1 = 0;
+        needle.y1 = 0;
+        needle.lineWidth = 3;
+        needle.color = "white";
+        container.addControl(needle);
+
+        function setNeedle(angleDeg, length = 90) {
+            const rad = BABYLON.Angle.FromDegrees(angleDeg + 90).radians();
+            const dir = new BABYLON.Vector2(Math.cos(rad), Math.sin(rad)).scale(length);
+            needle.x1 = offsetX;
+            needle.y1 = offsetY;
+            needle.x2 = dir.x + offsetX;
+            needle.y2 = -dir.y + offsetY;
+        }
+
+        let angle = 90;
+
+        GameEngine.scene.onBeforeRenderObservable.add(() => {
+            const rpmPercentage = GameEngine.car.engine.engineTorque * 100 / GameEngine.car.engine.maxRpm
+            console.log(rpmPercentage)
+            const angle = 90 - (rpmPercentage / 100 * 180)
+            setNeedle(angle);
+        });
+    }
+
+
+
+    update() {
+        if (GameEngine.stage.state === RunState.RUNNING) {
+            const now = performance.now();
+            const elapsed = now - this.startTime; // in milliseconds
+
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            const milliseconds = Math.floor(elapsed % 1000);
+
+            this.gameTimerText.text =
+                (minutes < 10 ? "0" : "") + minutes + ":" +
+                (seconds < 10 ? "0" : "") + seconds + "." +
+                milliseconds.toString().padStart(3, '0');
         }
     }
 
