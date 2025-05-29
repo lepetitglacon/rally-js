@@ -348,9 +348,10 @@ export default class Car {
                 wheel.infos.frictionSlip = wheel.baseFriction - 0.5
             }
             if (GameEngine.inputManager.keys.handbrake) {
-                if (wheel.isFront) { continue }
-                this.vehicle.setBrake(GameEngine.inputManager.keys.handbrake * this.breakForce * 2, wheel.id);
-                wheel.infos.frictionSlip = wheel.baseFriction - 2
+                if (!wheel.isFront) {
+                    this.vehicle.setBrake(GameEngine.inputManager.keys.handbrake * this.breakForce * 2, wheel.id);
+                    wheel.infos.frictionSlip = wheel.baseFriction - 2
+                }
             }
             if (!GameEngine.inputManager.keys.handbrake || !GameEngine.inputManager.keys.brake) { wheel.infos.frictionSlip = wheel.baseFriction}
 
