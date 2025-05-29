@@ -39,7 +39,7 @@ export default class Car {
         const chassisShape = new CANNON.Box(config.shape);
         this.chassisShape = chassisShape
         const chassisBody = new CANNON.Body({
-            mass: 1500,
+            mass: 1000,
             type: CANNON.BODY_TYPES.STATIC
         });
         this.chassisBody = chassisBody
@@ -353,7 +353,12 @@ export default class Car {
                     wheel.infos.frictionSlip = wheel.baseFriction - 2
                 }
             }
-            if (!GameEngine.inputManager.keys.handbrake || !GameEngine.inputManager.keys.brake) { wheel.infos.frictionSlip = wheel.baseFriction}
+            if (!GameEngine.inputManager.keys.handbrake && !GameEngine.inputManager.keys.brake) {
+                this.vehicle.setBrake(10, wheel.id);
+                wheel.infos.frictionSlip = wheel.baseFriction
+            }
+
+            this.vehicle.applyEngineForce(-this.engine.wheelTorque, wheel.id)
 
             wheel.update()
         }

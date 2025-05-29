@@ -58,7 +58,7 @@ export default class SoundManager {
         const minRate = 1;
         const maxRate = 2.5;
         const minRpm = 0
-        const clampedRPM = Math.min(GameEngine.car.engine.maxRpm, Math.max(minRpm, GameEngine.car.engine.engineTorque));
+        const clampedRPM = Math.min(GameEngine.car.engine.maxRpm, Math.max(minRpm, GameEngine.car.engine.currentRpm));
         const t = (clampedRPM - minRpm) / (GameEngine.car.engine.maxRpm - minRpm);
         const rate = minRate + t * (maxRate - minRate);
         this.sounds['engine'].setPlaybackRate(rate)

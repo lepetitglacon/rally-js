@@ -191,12 +191,21 @@ export default class Gui {
             needle.y2 = -dir.y + offsetY;
         }
 
-
+        const header = new GUI.TextBlock();
+        header.text = "N";
+        header.height = "100px";
+        header.color = "white";
+        header.paddingBottom = "50px";
+        header.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        header.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        container.addControl(header)
 
         GameEngine.scene.onBeforeRenderObservable.add(() => {
-            const rpmPercentage = GameEngine.car.engine.engineTorque * 100 / GameEngine.car.engine.maxRpm
+            const rpmPercentage = GameEngine.car.engine.currentRpm * 100 / GameEngine.car.engine.maxRpm
             const angle = 90 - (rpmPercentage / 100 * 180)
             setNeedle(angle);
+
+            header.text = GameEngine.car.engine.currentGear.toString()
         });
     }
 

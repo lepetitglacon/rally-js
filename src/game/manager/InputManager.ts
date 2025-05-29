@@ -112,6 +112,8 @@ export default class InputManager {
                     switch (buttonKey) {
                         case Xbox360Button.Start: { GameEngine.eventManager.onControllerStartButton.notifyObservers({}); break; }
                         case Xbox360Button.B: { GameEngine.eventManager.onControllerHandbrakeButton.notifyObservers({}); break; }
+                        case Xbox360Button.A: { GameEngine.eventManager.onControllerAButton.notifyObservers({}); break; }
+                        case Xbox360Button.X: { GameEngine.eventManager.onControllerXButton.notifyObservers({}); break; }
                     }
                 })
             }

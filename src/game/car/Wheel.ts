@@ -87,16 +87,6 @@ export default class Wheel {
     update() {
         const wheelInfos = this.vehicle.wheelInfos[this.id];
 
-        // wheelInfos.frictionSlip = this.getFrictionSlip()
-        // if (GameEngine.inputManager.keys.handbrake) {
-        //     this.vehicle.setBrake(50000, 1);
-        //     this.vehicle.setBrake(50000, 3);
-        //     wheelInfos.frictionSlip = .5
-        // }
-        // if (GameEngine.inputManager.keys.brake && !GameEngine.inputManager.keys.handbrake) {
-        //     wheelInfos.frictionSlip = .5
-        // }
-
         this.vehicle.updateWheelTransform(this.id);
         const worldTransform = wheelInfos.worldTransform;
         this.body.position.copy(worldTransform.position)

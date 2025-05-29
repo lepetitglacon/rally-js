@@ -5,6 +5,8 @@ export default class EventManager {
     // Engine
     public onControllerStartButton: Observable;
     public onControllerHandbrakeButton: Observable;
+    public onControllerAButton: Observable;
+    public onControllerXButton: Observable;
 
     // Car
     public onCarLoader: Observable;
@@ -21,6 +23,8 @@ export default class EventManager {
 
         this.onControllerStartButton = new Observable();
         this.onControllerHandbrakeButton = new Observable();
+        this.onControllerAButton = new Observable();
+        this.onControllerXButton = new Observable();
 
         this.onCarLoader = new Observable();
         this.onCarInitialized = new Observable();
