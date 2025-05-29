@@ -195,7 +195,6 @@ export default class Gui {
 
         GameEngine.scene.onBeforeRenderObservable.add(() => {
             const rpmPercentage = GameEngine.car.engine.engineTorque * 100 / GameEngine.car.engine.maxRpm
-            console.log(rpmPercentage)
             const angle = 90 - (rpmPercentage / 100 * 180)
             setNeedle(angle);
         });

@@ -1,4 +1,4 @@
-import {GamepadManager, Gamepad, Xbox360Pad, Xbox360Button} from "@babylonjs/core";
+import {GamepadManager, Gamepad, Xbox360Pad, Xbox360Button, Vector3} from "@babylonjs/core";
 import GameEngine from "@/game/GameEngine.ts";
 
 export default class InputManager {
@@ -10,6 +10,7 @@ export default class InputManager {
         left: number;
         handbrake: number;
         shift: number;
+        freeView: Vector3
     };
     private keyMap: {
         throttle: string,
@@ -33,7 +34,8 @@ export default class InputManager {
             left: 0,
             right: 0,
             handbrake: 0,
-            shift: 0
+            shift: 0,
+            freeView: new Vector3()
         };
 
         // TODO keymap
@@ -103,6 +105,7 @@ export default class InputManager {
 
     setupGamepad() {
         this.gamepadManager.onGamepadConnectedObservable.add((gamepad, state) => {
+            console.info(`Gamepad connected: ${gamepad.id}`)
             this.gamepad = gamepad
             if(this.gamepad instanceof Xbox360Pad) {
                 this.gamepad.onButtonDownObservable.add((buttonKey) => {
@@ -113,7 +116,10 @@ export default class InputManager {
                 })
             }
         });
-        this.gamepadManager.onGamepadDisconnectedObservable.add((gamepad, state) => {this.gamepad = undefined});
+        this.gamepadManager.onGamepadDisconnectedObservable.add((gamepad, state) => {
+            console.info(`Gamepad disconnected: ${gamepad.id}`)
+            this.gamepad = undefined
+        });
     }
 
     update() {
@@ -125,8 +131,7 @@ export default class InputManager {
             this.keys.throttle = this.gamepad.rightTrigger
             this.keys.brake = this.gamepad.leftTrigger
             this.keys.steering = this.gamepad.leftStick.x
-
-
+            this.keys.freeView.set(this.gamepad.rightStick.x, this.gamepad.rightStick.y, 0)
         }
     }
 }
