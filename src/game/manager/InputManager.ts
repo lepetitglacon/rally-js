@@ -107,7 +107,8 @@ export default class InputManager {
             if(this.gamepad instanceof Xbox360Pad) {
                 this.gamepad.onButtonDownObservable.add((buttonKey) => {
                     switch (buttonKey) {
-                        case Xbox360Button.Start: { GameEngine.eventManager.onControllerStartButton.notifyObservers({}) }
+                        case Xbox360Button.Start: { GameEngine.eventManager.onControllerStartButton.notifyObservers({}); break; }
+                        case Xbox360Button.B: { GameEngine.eventManager.onControllerHandbrakeButton.notifyObservers({}); break; }
                     }
                 })
             }

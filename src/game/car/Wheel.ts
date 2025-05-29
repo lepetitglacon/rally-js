@@ -1,20 +1,23 @@
 import * as BABYLON from "@babylonjs/core";
 import * as CANNON from "cannon-es";
-import type {WheelInfoOptions} from "objects/WheelInfo";
+import type {WheelInfo, WheelInfoOptions} from "objects/WheelInfo";
 import GameEngine from "../GameEngine.ts";
 import type Car from "./Car.ts";
 import {Lerp} from "@babylonjs/core/Maths/math.scalar.functions";
 
 export default class Wheel {
-    private params: CANNON.WheelInfoOptions;
-    private car: Car;
-    private vehicle: CANNON.RaycastVehicle;
-    private mesh: BABYLON.Mesh;
-    private shape: CANNON.Shape;
-    private body: CANNON.Body;
-    private id: number;
-    private debugMesh: BABYLON.Mesh;
-    private baseFriction: number;
+    params: CANNON.WheelInfoOptions;
+    car: Car;
+    vehicle: CANNON.RaycastVehicle;
+    mesh: BABYLON.Mesh;
+    shape: CANNON.Shape;
+    body: CANNON.Body;
+    id: number;
+    debugMesh: BABYLON.Mesh;
+    baseFriction: number;
+    infos: WheelInfo;
+    isFront: boolean;
+    isRight: boolean;
 
     static wheelTransformQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0,-1,0), Math.PI / 2)
     static wheelMaterial = new CANNON.Material('wheel')
@@ -40,7 +43,13 @@ export default class Wheel {
             useWorldNormal: true,
             ...params
         } as WheelInfoOptions
-        this.baseFriction = this.params.frictionSlip
+
+        this.id = this.vehicle.addWheel(this.params);
+        this.infos = this.vehicle.wheelInfos[this.id]
+        this.isFront = this.id === 0 || this.id === 2
+        this.isRight = this.id === 1 || this.id === 2
+
+        this.baseFriction = this.params.frictionSlip ?? 5
 
         this.mesh = params.model
         this.mesh.setPivotPoint(BABYLON.Vector3.Zero())
@@ -64,8 +73,6 @@ export default class Wheel {
         this.body.collisionFilterGroup = 0 // turn off collisions
         const quaternion = new CANNON.Quaternion().setFromEuler(-Math.PI / 2, 0, 0)
         this.body.addShape(this.shape, new CANNON.Vec3(), quaternion)
-
-        this.id = this.vehicle.addWheel(this.params);
     }
 
     getFrictionSlip() {
@@ -80,15 +87,15 @@ export default class Wheel {
     update() {
         const wheelInfos = this.vehicle.wheelInfos[this.id];
 
-        wheelInfos.frictionSlip = this.getFrictionSlip()
-        if (GameEngine.inputManager.keys.handbrake) {
-            this.vehicle.setBrake(50000, 1);
-            this.vehicle.setBrake(50000, 3);
-            wheelInfos.frictionSlip = .5
-        }
-        if (GameEngine.inputManager.keys.brake && !GameEngine.inputManager.keys.handbrake) {
-            wheelInfos.frictionSlip = .5
-        }
+        // wheelInfos.frictionSlip = this.getFrictionSlip()
+        // if (GameEngine.inputManager.keys.handbrake) {
+        //     this.vehicle.setBrake(50000, 1);
+        //     this.vehicle.setBrake(50000, 3);
+        //     wheelInfos.frictionSlip = .5
+        // }
+        // if (GameEngine.inputManager.keys.brake && !GameEngine.inputManager.keys.handbrake) {
+        //     wheelInfos.frictionSlip = .5
+        // }
 
         this.vehicle.updateWheelTransform(this.id);
         const worldTransform = wheelInfos.worldTransform;

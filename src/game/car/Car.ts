@@ -27,7 +27,7 @@ export default class Car {
         quaternion: new CANNON.Quaternion()
     };
 
-    private breakForce: number = 500;
+    private breakForce: number = 150;
 
     constructor() {
         this.wheels = [];
@@ -65,10 +65,21 @@ export default class Car {
                 this.engine.startStopEngine()
             }
         })
+
         GameEngine.eventManager.onControllerStartButton.add(() => {
-            console.log('engine start')
             this.engine.startStopEngine()
         })
+        GameEngine.eventManager.onControllerHandbrakeButton.add(() => {
+            if (GameEngine.stage.state === RunState.INIT) {
+                this.vehicle.setBrake(0, 0)
+                this.vehicle.setBrake(0, 1)
+                this.vehicle.setBrake(0, 2)
+                this.vehicle.setBrake(0, 3)
+                GameEngine.eventManager.onUserHandBreakForTheFirstTime.notifyObservers({})
+            }
+        })
+
+
     }
 
     async initAsync() {
@@ -141,10 +152,10 @@ export default class Car {
 
     setInitialPosition(pos) {
         this.isInInitMode = true
-        this.vehicle.setBrake(100, 0)
-        this.vehicle.setBrake(100, 1)
-        this.vehicle.setBrake(100, 2)
-        this.vehicle.setBrake(100, 3)
+        this.vehicle.setBrake(10000, 0)
+        this.vehicle.setBrake(10000, 1)
+        this.vehicle.setBrake(10000, 2)
+        this.vehicle.setBrake(10000, 3)
 
         setTimeout(() => {
             this.chassisBody.position.set(
@@ -286,64 +297,66 @@ export default class Car {
         }
     }
 
-    update() {
+    // Sync Babylon.js meshes with Cannon.js physics
+    updateGraphics() {
+        this.chassisMesh.position.set(
+            this.chassisBody.position.x,
+            this.chassisBody.position.y,
+            this.chassisBody.position.z
+        )
+        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion(
+            this.chassisBody.quaternion.x,
+            this.chassisBody.quaternion.y,
+            this.chassisBody.quaternion.z,
+            this.chassisBody.quaternion.w
+        );
+    }
 
-        if (GameEngine.inputManager.keys.handbrake && GameEngine.stage.state === RunState.INIT) {
-            this.vehicle.setBrake(0, 0)
-            this.vehicle.setBrake(0, 1)
-            this.vehicle.setBrake(0, 2)
-            this.vehicle.setBrake(0, 3)
-            GameEngine.eventManager.onUserHandBreakForTheFirstTime.notifyObservers({})
-        }
+    update() {
 
         // Appliquer les contrôles
         this.engine.setThrottle(GameEngine.inputManager.keys.throttle);
         this.engine.update(1/60)
-        const engineInfo = this.engine.getEngineInfo();
-
-        for (const wheel of this.wheels) {
-            wheel.update()
-        }
 
         if (GameEngine.stage.state === RunState.INIT) {
             this.vehicle.setBrake(100, 0)
             this.vehicle.setBrake(100, 1)
             this.vehicle.setBrake(100, 2)
             this.vehicle.setBrake(100, 3)
-        }
-
-        if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
-            // brake
-            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 0);
-            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 2);
-            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 1);
-            this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, 3);
-            // steering
-            if (GameEngine.inputManager.keys.steering < -GameEngine.inputManager.deadZoneMinX || GameEngine.inputManager.keys.steering > GameEngine.inputManager.deadZoneMinX) {
-                this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 0);
-                this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 2);
-            } else {
-                this.vehicle.setSteeringValue(0, 0);
-                this.vehicle.setSteeringValue(0, 2);
+        } else {
+            if (GameEngine.scene.activeCamera === GameEngine.cameraManager.gameCamera) {
+                // steering
+                if (GameEngine.inputManager.keys.steering < -GameEngine.inputManager.deadZoneMinX || GameEngine.inputManager.keys.steering > GameEngine.inputManager.deadZoneMinX) {
+                    this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 0);
+                    this.vehicle.setSteeringValue(GameEngine.inputManager.keys.steering * .5, 2);
+                } else {
+                    this.vehicle.setSteeringValue(0, 0);
+                    this.vehicle.setSteeringValue(0, 2);
+                }
             }
         }
+
+
 
         // // remettre la voiture sur la piste
         // this.updateSafeStateIfGrounded()
         // this.checkAndResetIfFlipped()
+        for (const wheel of this.wheels) {
 
-        // Sync Babylon.js meshes with Cannon.js physics
-        this.chassisMesh.position.set(
-            this.chassisBody.position.x, 
-            this.chassisBody.position.y, 
-            this.chassisBody.position.z
-        )
-        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion(
-            this.chassisBody.quaternion.x, 
-            this.chassisBody.quaternion.y, 
-            this.chassisBody.quaternion.z, 
-            this.chassisBody.quaternion.w
-        );
+            if (GameEngine.inputManager.keys.brake) {
+                this.vehicle.setBrake(GameEngine.inputManager.keys.brake * this.breakForce, wheel.id);
+                wheel.infos.frictionSlip = wheel.baseFriction - 0.5
+            }
+            if (GameEngine.inputManager.keys.handbrake) {
+                if (wheel.isFront) { continue }
+                this.vehicle.setBrake(GameEngine.inputManager.keys.handbrake * this.breakForce * 2, wheel.id);
+                wheel.infos.frictionSlip = wheel.baseFriction - 2
+            }
+            if (!GameEngine.inputManager.keys.handbrake || !GameEngine.inputManager.keys.brake) { wheel.infos.frictionSlip = wheel.baseFriction}
+
+            wheel.update()
+        }
+        this.updateGraphics()
     }
 
 }
