@@ -1,6 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import type {RaycastVehicle} from "objects/RaycastVehicle";
-import GameEngine from "./GameEngine.ts";
+import GameEngine from "../GameEngine.ts";
 import type {TextBlock} from "@babylonjs/gui";
 
 interface EngineOptions {
@@ -114,10 +114,12 @@ class Engine {
     }
 
     startStopEngine() {
-        if (this.running) {
-            this.running = false
-        } else {
+        if (!this.running) {
             this.running = true
+            GameEngine.eventManager.onCarEngineStart.notifyObservers({})
+        } else {
+            this.running = false
+            GameEngine.eventManager.onCarEngineStop.notifyObservers({})
         }
     }
 

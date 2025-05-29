@@ -1,12 +1,12 @@
 import * as CANNON from "cannon-es";
 import * as BABYLON from "@babylonjs/core";
 import Wheel from "./Wheel.ts";
-import GameEngine from "./GameEngine";
+import GameEngine from "../GameEngine.ts";
 
 import subaru from '@/assets/gltf/subaru.glb?url'
 
 import CarEngine from "./CarEngine.ts";
-import {RunState} from "./Stage.ts";
+import {RunState} from "../Stage.ts";
 import type {RaycastResult} from "collision/RaycastResult";
 
 export default class Car {
@@ -28,8 +28,6 @@ export default class Car {
     };
 
     private breakForce: number = 500;
-
-    private engineSound: BABYLON.Sound;
 
     constructor() {
         this.wheels = [];
@@ -67,6 +65,10 @@ export default class Car {
                 this.engine.startStopEngine()
             }
         })
+        GameEngine.eventManager.onControllerStartButton.add(() => {
+            console.log('engine start')
+            this.engine.startStopEngine()
+        })
     }
 
     async initAsync() {
@@ -99,7 +101,6 @@ export default class Car {
             mesh.parent = backRight
         }
 
-// Create Raycast Vehicle
         const vehicle = new CANNON.RaycastVehicle({chassisBody: this.chassisBody});
         this.vehicle = vehicle
         vehicle.chassisBody.quaternion = vehicle.chassisBody.quaternion.mult(BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0, 1, 0), Math.PI / 2))
@@ -107,7 +108,6 @@ export default class Car {
 
         this.engine.attachToVehicle(vehicle);
 
-// Add 4 wheels
         const xOffset = 1.5
         const zOffset = 1
         const wheelConfig = [
@@ -135,6 +135,7 @@ export default class Car {
             this.wheels.push(new Wheel(config, vehicle, GameEngine.scene, this))
         }
 
+        GameEngine.eventManager.onCarLoader.notifyObservers(this)
         console.log('car loaded')
     }
 

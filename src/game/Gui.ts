@@ -191,7 +191,7 @@ export default class Gui {
             needle.y2 = -dir.y + offsetY;
         }
 
-        let angle = 90;
+
 
         GameEngine.scene.onBeforeRenderObservable.add(() => {
             const rpmPercentage = GameEngine.car.engine.engineTorque * 100 / GameEngine.car.engine.maxRpm

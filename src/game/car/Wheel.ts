@@ -1,7 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import * as CANNON from "cannon-es";
 import type {WheelInfoOptions} from "objects/WheelInfo";
-import GameEngine from "./GameEngine.ts";
+import GameEngine from "../GameEngine.ts";
 import type Car from "./Car.ts";
 import {Lerp} from "@babylonjs/core/Maths/math.scalar.functions";
 

@@ -1,4 +1,5 @@
-import {GamepadManager, Gamepad, Xbox360Pad} from "@babylonjs/core";
+import {GamepadManager, Gamepad, Xbox360Pad, Xbox360Button} from "@babylonjs/core";
+import GameEngine from "@/game/GameEngine.ts";
 
 export default class InputManager {
     public keys: {
@@ -103,6 +104,13 @@ export default class InputManager {
     setupGamepad() {
         this.gamepadManager.onGamepadConnectedObservable.add((gamepad, state) => {
             this.gamepad = gamepad
+            if(this.gamepad instanceof Xbox360Pad) {
+                this.gamepad.onButtonDownObservable.add((buttonKey) => {
+                    switch (buttonKey) {
+                        case Xbox360Button.Start: { GameEngine.eventManager.onControllerStartButton.notifyObservers({}) }
+                    }
+                })
+            }
         });
         this.gamepadManager.onGamepadDisconnectedObservable.add((gamepad, state) => {this.gamepad = undefined});
     }
@@ -116,6 +124,8 @@ export default class InputManager {
             this.keys.throttle = this.gamepad.rightTrigger
             this.keys.brake = this.gamepad.leftTrigger
             this.keys.steering = this.gamepad.leftStick.x
+
+
         }
     }
 }

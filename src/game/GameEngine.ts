@@ -1,11 +1,12 @@
 import * as BABYLON from "@babylonjs/core";
 import Stage from "./Stage.ts";
-import Car from "./Car.ts";
-import CameraManager from "./CameraManager.ts";
-import InputManager from "./InputManager.ts";
+import Car from "./car/Car.ts";
+import CameraManager from "./manager/CameraManager.ts";
+import InputManager from "./manager/InputManager.ts";
 import {registerBuiltInLoaders} from "@babylonjs/loaders/dynamic";
 import Gui from "./Gui.ts";
-import EventManager from "./EventManager.ts";
+import EventManager from "./manager/EventManager.ts";
+import SoundManager from "./manager/SoundManager.ts";
 
 class GameEngine {
     public canvas: HTMLCanvasElement;
@@ -14,10 +15,11 @@ class GameEngine {
 
     public stage: Stage;
     public car: Car;
+    eventManager: EventManager;
+    soundManager: SoundManager;
     gui: Gui;
     cameraManager: CameraManager;
     inputManager: InputManager;
-    eventManager: EventManager;
     gamepadManager: BABYLON.GamepadManager;
 
     constructor() {}
@@ -27,15 +29,18 @@ class GameEngine {
         await this.initScene()
 
         this.eventManager = new EventManager()
+        this.soundManager = new SoundManager()
 
         this.gui = new Gui()
 
         this.cameraManager = new CameraManager()
         this.inputManager = new InputManager()
         registerBuiltInLoaders()
+
         this.stage = new Stage()
         this.car = new Car()
 
+        await this.soundManager.init()
         await this.stage.initAsync()
         await this.car.initAsync()
 
@@ -43,6 +48,7 @@ class GameEngine {
 
         this.scene.onBeforeRenderObservable.add(() => {
             this.inputManager.update()
+            this.soundManager.update()
             this.cameraManager.update()
             this.stage.update()
             this.car.update()
@@ -57,23 +63,11 @@ class GameEngine {
             this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
             this.engine = new BABYLON.Engine(this.canvas, true, {
                 audioEngine: true,
-                adaptToDeviceRatio: true,
+                // adaptToDeviceRatio: true,
             });
             window.addEventListener("resize", () => this.engine.resize());
             return res()
         })
-
-        // sound
-        BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
-        window.addEventListener(
-            "click",
-            () => {
-              if (!BABYLON.Engine.audioEngine.unlocked) {
-                BABYLON.Engine.audioEngine.unlock();
-              }
-            },
-            { once: true },
-        );
     }
     private initScene() {
         return new Promise((res): void => {

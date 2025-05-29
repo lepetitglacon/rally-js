@@ -1,5 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
-import GameEngine from "./GameEngine";
+import GameEngine from "../GameEngine.ts";
 
 export default class CameraManager {
     gameCamera: BABYLON.UniversalCamera;
