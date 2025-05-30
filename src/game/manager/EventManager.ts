@@ -1,46 +1,39 @@
-import {Observable} from "@babylonjs/core";
+import {type Mesh, Observable, type Vector3} from "@babylonjs/core";
 
 export default class EventManager {
 
     // Engine
-    public onControllerStartButton: Observable;
-    public onControllerHandbrakeButton: Observable;
-    public onControllerAButton: Observable;
-    public onControllerXButton: Observable;
+    public onControllerStartButton: Observable = new Observable();
+    public onControllerHandbrakeButton: Observable = new Observable();
+    public onControllerAButton: Observable = new Observable();
+    public onControllerXButton: Observable = new Observable();
 
     // Car
-    public onCarLoader: Observable;
-    public onCarInitialized: Observable;
-    public onCarEngineStart: Observable;
-    public onCarEngineStop: Observable;
-    public onUserHandBreakForTheFirstTime: Observable;
+    public onCarLoader: Observable = new Observable();
+    public onCarInitialized: Observable = new Observable();
+    public onCarEngineStart: Observable = new Observable();
+    public onCarEngineStop: Observable = new Observable();
+    public onUserHandBreakForTheFirstTime: Observable = new Observable();
+
+    // Stage
+    public onStageLoaded: Observable<{
+        terrainMesh: Mesh,
+        startMesh: Mesh,
+        endMesh: Mesh,
+        checkpoints: Vector3[],
+    }> = new Observable();
+    public onNextWaypoint: Observable<{
+        index: number
+        waypoint: Vector3
+        distance: number
+        totalDistanceBetweenPoints: number
+    }> = new Observable();
+
+
 
     // Run
-    public onRunStart: Observable;
-    public onRunEnd: Observable;
+    public onRunStart: Observable = new Observable();
+    public onRunEnd: Observable = new Observable();
 
-    constructor() {
-
-        this.onControllerStartButton = new Observable();
-        this.onControllerHandbrakeButton = new Observable();
-        this.onControllerAButton = new Observable();
-        this.onControllerXButton = new Observable();
-
-        this.onCarLoader = new Observable();
-        this.onCarInitialized = new Observable();
-        this.onCarEngineStart = new Observable();
-        this.onCarEngineStop = new Observable();
-        this.onUserHandBreakForTheFirstTime = new Observable();
-
-        this.onRunStart = new Observable();
-        this.onRunEnd = new Observable();
-
-
-        this.onUserHandBreakForTheFirstTime.add(() => {
-
-        })
-        this.onRunStart.add(() => {
-
-        })
-    }
+    constructor() {}
 }

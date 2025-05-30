@@ -102,8 +102,14 @@ export default class Stage {
                 // }
             }
         }
-        console.log('map loaded')
 
+        GameEngine.eventManager.onStageLoaded.notifyObservers({
+            terrainMesh: this.terrainMesh,
+            startMesh: this.startMesh,
+            endMesh: this.endMesh,
+            checkpoints: this.runCheckpoints,
+        })
+        console.log('map loaded')
     }
     buildTerrainAsHeightfieldRectangular(mesh: BABYLON.Mesh, rows: number, columns: number): CANNON.Body {
         const vertices = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -316,7 +322,13 @@ export default class Stage {
         } else {
             let closestCheckpoint = this.findNearestPointOnCurve(GameEngine.car.chassisMesh.position, availableCheckpoints)
             let distanceToCheckpoint = BABYLON.Vector3.Distance(closestCheckpoint, GameEngine.car.chassisMesh.position)
-            if (distanceToCheckpoint < 20) { this.currentSegmentIndex++ }
+            if (distanceToCheckpoint < 20) {this.currentSegmentIndex++}
+            GameEngine.eventManager.onNextWaypoint.notifyObservers({
+                index: this.currentSegmentIndex,
+                waypoint: closestCheckpoint,
+                distance: distanceToCheckpoint,
+                totalDistanceBetweenPoints: BABYLON.Vector3.Distance(closestCheckpoint, this.runCheckpoints[this.currentSegmentIndex - 1] ?? this.startMesh.absolutePosition)
+            })
             // console.log(this.runCheckpoints.indexOf(closestCheckpoint), distanceToCheckpoint)
         }
 

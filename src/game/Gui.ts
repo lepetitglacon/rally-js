@@ -2,7 +2,7 @@ import * as GUI from "@babylonjs/gui";
 import * as BABYLON from "@babylonjs/core";
 import GameEngine from "./GameEngine.ts";
 import {RunState} from "./Stage.ts";
-import {TextBlock} from "@babylonjs/gui";
+import {Rectangle, TextBlock} from "@babylonjs/gui";
 import {Color3, Vector2} from "@babylonjs/core";
 
 class InputConnectedKeyboard extends GUI.VirtualKeyboard {
@@ -18,6 +18,9 @@ export default class Gui {
     private updateFunctions: Map<string, Function>;
     private startTime: DOMHighResTimeStamp;
     private gameTimerText: TextBlock;
+
+    private currentWaypointIndex = 0;
+    private numberOfWaypoints = 0;
 
     constructor() {
         this.updateFunctions = new Map<string, Function>()
@@ -94,6 +97,21 @@ export default class Gui {
             header.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
             header.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
             this.gui.addControl(header)
+        })
+        GameEngine.eventManager.onStageLoaded.add((e) => {
+            this.createWaypoints(e.checkpoints)
+        })
+        GameEngine.eventManager.onNextWaypoint.add((e) => {
+            this.currentWaypointIndex = e.index
+            { // car waypoint
+                const distPercentage = 100 - e.distance * 100 / e.totalDistanceBetweenPoints
+                const percent = this.currentWaypointIndex / (this.numberOfWaypoints - 1);
+                const percentage = percent * 100;
+                let subPercentage = distPercentage / (this.numberOfWaypoints - 1)
+                const finalTop = percentage + subPercentage;
+                console.log(percent, percentage,distPercentage, finalTop)
+                this.carMarker.top = -finalTop + "%";
+            }
         })
     }
 
@@ -209,21 +227,77 @@ export default class Gui {
         });
     }
 
+    private carMarker: Rectangle;
 
+    createWaypoints(waypoints: BABYLON.Vector3[]) {
+        this.numberOfWaypoints = waypoints.length;
+
+        const lineContainer = new GUI.Rectangle();
+        lineContainer.widthInPixels = 100
+        lineContainer.heightInPixels = 300
+        lineContainer.thickness = 0;
+        lineContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        lineContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        lineContainer.left = "20px";
+        this.gui.addControl(lineContainer);
+
+// Create the vertical line itself
+        const verticalLine = new GUI.Line();
+        verticalLine.lineWidth = 4;
+        verticalLine.color = "white";
+        verticalLine.x1 = lineContainer.widthInPixels / 2;
+        verticalLine.y1 = 0;
+        verticalLine.x2 = lineContainer.widthInPixels / 2;
+        verticalLine.y2 = lineContainer.heightInPixels;
+        verticalLine.paddingTop = "20px";
+        verticalLine.paddingBottom = "20px";
+        lineContainer.addControl(verticalLine);
+
+        const waypointNodes = [];
+        let i = 0
+        for (const waypoint of waypoints) {
+            const circle = new GUI.Ellipse();
+            circle.width = "20px";
+            circle.height = "20px";
+            circle.color = "white";
+            circle.thickness = 2;
+            circle.background = "gray";
+            circle.top = ((i / (this.numberOfWaypoints - 1)) * 100 - 50) + "%"; // evenly spaced
+            circle.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            circle.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            lineContainer.addControl(circle);
+            waypointNodes.push(circle);
+            i++
+        }
+
+// Car marker
+        this.carMarker =  new GUI.Rectangle();
+        this.carMarker.width = "25px";
+        this.carMarker.height = "10px";
+        this.carMarker.color = "yellow";
+        this.carMarker.background = "yellow";
+        this.carMarker.top = "50%";
+        this.carMarker.thickness = 0;
+        this.carMarker.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.carMarker.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        lineContainer.addControl(this.carMarker);
+    }
 
     update() {
         if (GameEngine.stage.state === RunState.RUNNING) {
-            const now = performance.now();
-            const elapsed = now - this.startTime; // in milliseconds
+            { // timer
+                const now = performance.now();
+                const elapsed = now - this.startTime; // in milliseconds
 
-            const minutes = Math.floor(elapsed / 60000);
-            const seconds = Math.floor((elapsed % 60000) / 1000);
-            const milliseconds = Math.floor(elapsed % 1000);
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                const milliseconds = Math.floor(elapsed % 1000);
 
-            this.gameTimerText.text =
-                (minutes < 10 ? "0" : "") + minutes + ":" +
-                (seconds < 10 ? "0" : "") + seconds + "." +
-                milliseconds.toString().padStart(3, '0');
+                this.gameTimerText.text =
+                    (minutes < 10 ? "0" : "") + minutes + ":" +
+                    (seconds < 10 ? "0" : "") + seconds + "." +
+                    milliseconds.toString().padStart(3, '0');
+            }
         }
     }
 
