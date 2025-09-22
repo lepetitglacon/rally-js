@@ -18,7 +18,8 @@ export default function Terrain() {
 
         const heightData = processHeightmapImage(heightmapTexture.image);
 
-        return [width, height, heightData.heights, {x: width, y: 1, z: height}];
+        const scale = 16
+        return [width, height, heightData.heights, {x: width/scale, y: 1, z: height/scale}];
     }, [heightmapTexture]);
 
     return (

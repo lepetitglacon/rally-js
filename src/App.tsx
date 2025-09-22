@@ -6,16 +6,28 @@ import Ui from "@/components/ui/Ui.tsx";
 import {Perf} from "r3f-perf";
 import {Suspense} from "react";
 import {CuboidCollider, Physics, RigidBody} from "@react-three/rapier";
-import Terrain from "@/components/three/stage/Terrain.tsx";
+import ChunkManager from "@/components/three/stage/ChunkManager.tsx";
 import {Torus} from "@react-three/drei";
 
 function App() {
   return (
     <>
         <div id="canvas-container" className="relative w-screen h-screen">
-                <Canvas camera={{near: 0.1, far: 10000}} className="absolute inset-0">
+                <Canvas
+                    camera={{near: 0.1, far: 10000}}
+                    className="absolute inset-0"
+                    gl={{
+                        powerPreference: "high-performance",
+                        antialias: false,
+                        stencil: false,
+                        depth: true,
+                        alpha: false
+                    }}
+                    dpr={[1, 2]}
+                    performance={{ min: 0.5 }}
+                >
 
-                    {/*<Perf />*/}
+                    <Perf />
 
                     <ambientLight intensity={0.1} />
                     <directionalLight position={[0, 0, 5]} color="orange" />
@@ -27,18 +39,9 @@ function App() {
                     </mesh>
 
                     <Suspense>
-                        <Suspense>
-                            <Physics debug>
-                                <RigidBody colliders={"hull"} restitution={2}>
-                                    <Torus />
-                                </RigidBody>
-
-                                <CuboidCollider position={[0, -2, 0]} args={[20, 0.5, 20]} />
-                            </Physics>
-                        </Suspense>
-                        {/*<Physics debug gravity={[0, -9.81, 0]}>*/}
-                        {/*    <Terrain />*/}
-                        {/*</Physics>*/}
+                        <Physics debug gravity={[0, -9.81, 0]} timeStep={1/60}>
+                            <Stage />
+                        </Physics>
                     </Suspense>
                 </Canvas>
 
