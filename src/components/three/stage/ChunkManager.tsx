@@ -1,68 +1,80 @@
-import { useMemo, useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import TerrainChunk from './TerrainChunk';
-import {HeightfieldCollider, RigidBody} from "@react-three/rapier";
+import { useMemo } from 'react'
+import { useLoader } from '@react-three/fiber'
+import * as THREE from 'three'
+import { HeightfieldCollider, RigidBody } from '@react-three/rapier'
+import heightmapPng from '@/assets/heightmap.png?url'
 
-const NUMBER_OF_CHUNKS = 16; // Size of each chunk in world units
-const CHUNK_SIZE = 16; // Size of each chunk in world units
-const SCALE = {x: CHUNK_SIZE * 2, y: 1, z: CHUNK_SIZE * 2}; // Size of each chunk in world units
-const RENDER_DISTANCE = 1; // Render 3x3 chunks (1 chunk in each direction + center)
-
-interface ChunkCoord {
-  x: number;
-  z: number;
-}
-
-interface Chunk {
-  coord: ChunkCoord;
-  position: THREE.Vector3;
-  key: string;
-  heights: number[];
-}
+// Scale factor to control terrain size - higher value = smaller terrain
+const TERRAIN_SCALE_FACTOR = 0.8
+// Sampling step for performance - higher value = lower resolution but better performance
+const SAMPLING_STEP = 16
+const HEIGHT_FACTOR = 200
 
 export default function ChunkManager() {
-  const chunks = [] as Chunk[];
+  const heightmapTexture = useLoader(THREE.TextureLoader, heightmapPng)
 
-  function createChunkHeightField() {
-    const heights = [];
-    for (let i = 0; i < CHUNK_SIZE + 1; i++) {
-      for (let j = 0; j < CHUNK_SIZE + 1; j++) {
-        heights.push(Math.random())
+  const heightfieldData = useMemo(() => {
+    if (!heightmapTexture.image) return null
+
+    const image = heightmapTexture.image
+    const canvas = document.createElement('canvas')
+    canvas.width = image.width
+    canvas.height = image.height
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(image, 0, 0)
+    const data = ctx.getImageData(0, 0, image.width, image.height).data
+
+    const heights: number[] = []
+
+    // Calculate sampled dimensions for better performance
+    const sampledWidth = Math.ceil(image.width / SAMPLING_STEP)
+    const sampledHeight = Math.ceil(image.height / SAMPLING_STEP)
+
+    // Rapier expects (height + 1) × (width + 1) vertices
+    for (let y = 0; y <= sampledHeight; y++) {
+      for (let x = 0; x <= sampledWidth; x++) {
+        const worldX = x * SAMPLING_STEP
+        const worldY = y * SAMPLING_STEP
+
+        if (worldY >= image.height || worldX >= image.width) {
+          heights.push(0)
+          continue
+        }
+
+        const idx = (worldY * image.width + worldX) * 4
+        const heightValue = data[idx] / 255 // Convert grayscale to 0-1 range
+        heights.push(heightValue * HEIGHT_FACTOR) // Scale height for more visible relief
       }
     }
-    return heights
-  }
 
-  for (let i = 0; i < NUMBER_OF_CHUNKS; i++) {
-    for (let j = 0; j < NUMBER_OF_CHUNKS; j++) {
-      const position = new THREE.Vector3(
-          i + i * CHUNK_SIZE,
-          0,
-          j + j * CHUNK_SIZE
-      );
-      const chunk = {
-        coord: { x: i, z: j },
-        position,
-        key: `chunk-${i}-${j}`,
-        heights: createChunkHeightField()
-      } as Chunk
-      chunks.push(chunk);
+    return {
+      width: sampledWidth,
+      height: sampledHeight,
+      heights,
+      scale: {
+        x: image.width / TERRAIN_SCALE_FACTOR,
+        y: 1,
+        z: image.height / TERRAIN_SCALE_FACTOR,
+      },
     }
-  }
+  }, [heightmapTexture])
 
-  console.log(chunks)
+  if (!heightfieldData) return null
+
+  console.log('Heightfield data:', heightfieldData)
 
   return (
     <>
-      {chunks.map((chunk) => (
-          <RigidBody key={chunk.key} type="fixed" position={chunk.position}>
-            <HeightfieldCollider
-                args={[CHUNK_SIZE, CHUNK_SIZE, chunk.heights, SCALE]}
-            />
-          </RigidBody>!
-      ))}
-
+      <RigidBody type="fixed" position={[0, 100, 0]}>
+        <HeightfieldCollider
+          args={[
+            heightfieldData.width,
+            heightfieldData.height,
+            heightfieldData.heights,
+            heightfieldData.scale,
+          ]}
+        />
+      </RigidBody>
     </>
-  );
+  )
 }
