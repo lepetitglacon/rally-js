@@ -1,40 +1,20 @@
-import { BufferGeometry, type Mesh } from 'three'
-import { useTrimesh } from '@react-three/cannon'
-import { useRef, useState } from 'react'
+import { type Mesh } from 'three'
+import { TerrainTrimesh } from '@/components/three/cannon/terrainsType/TerrainTrimesh.tsx'
+import { TerrainHeightField } from '@/components/three/cannon/terrainsType/TerrainHeightField.tsx'
 
 type Props = {
   mesh: Mesh
+  type?: 'trimesh' | 'heightfield'
 }
 
-export function Terrain({ mesh }: Props) {
-  const [hover, setHover] = useState<boolean>(false)
-
-  const geometry = mesh.geometry as BufferGeometry & {
-    index: ArrayLike<number>
-  }
-
-  const {
-    attributes: {
-      position: { array: vertices },
-    },
-    index: { array: indices },
-  } = geometry
-
-  const [ref] = useTrimesh(
-    () => ({
-      args: [vertices, indices],
-      mass: 0,
-    }),
-    useRef<Mesh>(null),
-  )
-
+export function Terrain({ mesh, type = 'heightfield' }: Props) {
   return (
-    <mesh
-      ref={ref}
-      geometry={geometry}
-      material={mesh.material}
-      onPointerOver={() => setHover(true)}
-      onPointerOut={() => setHover(false)}
-    />
+    <>
+      {type === 'trimesh' ? (
+        <TerrainTrimesh mesh={mesh} />
+      ) : (
+        <TerrainHeightField mesh={mesh} type="fromImage" />
+      )}
+    </>
   )
 }

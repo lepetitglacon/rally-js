@@ -9,6 +9,8 @@ import { useCameraStore } from '@/modules/camera/camera.store.ts'
 export default function CameraManager() {
   const activeCameraName = useCameraStore(state => state.active)
   const toggleCamera = useCameraStore(state => state.toggleCamera)
+  const shifting = useCameraStore(state => state.shifting)
+  const setShifting = useCameraStore(state => state.setShifting)
 
   useHotkeys(['c'], () => {
     if (activeCameraName === 'fly') {
@@ -18,12 +20,20 @@ export default function CameraManager() {
     toggleCamera()
   })
 
+  useHotkeys(
+    ['shift'],
+    e => {
+      setShifting(e.type === 'keydown')
+    },
+    { keyup: true, keydown: true },
+  )
+
   return (
     <>
       {activeCameraName === 'orbit' && <OrbitControls />}
       {activeCameraName === 'fly' && (
         <>
-          <FlyControls movementSpeed={100} />
+          <FlyControls movementSpeed={shifting ? 500 : 100} />
           <PointerLockControls />
         </>
       )}
