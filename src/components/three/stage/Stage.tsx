@@ -4,7 +4,7 @@ import mapGltf from '@/assets/gltf/france-besancon-bregille.glb?url'
 import { Group, Mesh } from 'three'
 import { Terrain } from '@/components/three/cannon/Terrain.tsx'
 import { usePlane, useSphere } from '@react-three/cannon'
-import { RaceCar } from '@/components/three/car/CarExample.tsx'
+import Car from '@/components/three/car/Car.tsx'
 
 export type LoaderType = {
   animations: []
@@ -62,7 +62,7 @@ export default function Stage() {
     <>
       <Cube />
       {terrain && <Terrain mesh={terrain} type={'trimesh'} />}
-      <RaceCar />
+      <Car />
     </>
   )
 }

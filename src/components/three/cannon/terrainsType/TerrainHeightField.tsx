@@ -1,7 +1,7 @@
 import { type Mesh } from 'three'
 import { type Triplet, useHeightfield } from '@react-three/cannon'
 import { useRef } from 'react'
-import { useHeightmapData } from '@/hook/useHeightmapData.ts'
+import { useHeightmapData } from '@/hooks/useHeightmapData.ts'
 
 const heightmapImageSrc = ' @/assets/test/Terrain_heightmap.png?url'
 

@@ -22,7 +22,9 @@
     "r3f-perf": "^7.2.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-gamepads": "^1.0.0",
     "react-hotkeys-hook": "^5.1.0",
+    "react-ts-gamepads": "^1.0.8",
     "tailwindcss": "^4.1.13",
     "three": "^0.180.0",
     "zustand": "^5.0.8"
