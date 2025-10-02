@@ -12,6 +12,7 @@ import type { Group, Mesh } from 'three'
 import Wheel from '@/components/three/car/Wheel.tsx'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 import { Html } from '@react-three/drei'
+import { useInputManager } from '@/hooks/useInputManager'
 
 interface CarProps {
   width?: number
@@ -42,6 +43,9 @@ export default function Car({
 
   const [gamepads, setGamepads] = useState<GamepadRef>({})
   useGamepads(gamepads => setGamepads(gamepads))
+
+  // Initialize input manager to process gamepad/keyboard inputs
+  useInputManager({ gamepads, enabled: true })
 
   const gamepadDisplay = Object.keys(gamepads).map(gamepadId => {
     return (
@@ -168,10 +172,7 @@ export default function Car({
     useRef<Group>(null),
   )
 
-  useEffect(
-    () => vehicleApi.sliding.subscribe(v => console.log('sliding', v)),
-    [],
-  )
+  useEffect(() => vehicleApi.sliding.subscribe(v => {}), [])
 
   useFrame(() => {
     // const { backward, brake, forward, left, reset, right } = controls.current
@@ -213,7 +214,7 @@ export default function Car({
               castShadow
               receiveShadow
             >
-              <Html center>
+              <Html center zIndexRange={[100, 0]}>
                 <div
                   style={{
                     position: 'fixed',

@@ -1,30 +1,13 @@
-import { useInputStore } from '@/stores/inputStore'
+import { useInputStore } from '@/stores/inputStore.ts'
 
 export default function ProfileSelector() {
-  const {
-    profiles,
-    activeProfileId,
-    setActiveProfile,
-    deleteProfile
-  } = useInputStore()
+  const { profiles, activeProfileId, setActiveProfile, deleteProfile } =
+    useInputStore()
 
   const activeProfile = profiles.find(p => p.id === activeProfileId)
 
   return (
     <div className="profile-selector">
-      <h3>Profil actuel</h3>
-
-      <div className="current-profile">
-        {activeProfile ? (
-          <div className="profile-info">
-            <div className="profile-name">{activeProfile.name}</div>
-            <div className="profile-description">{activeProfile.description}</div>
-          </div>
-        ) : (
-          <div className="no-profile">Aucun profil sélectionné</div>
-        )}
-      </div>
-
       <div className="profile-list">
         <h4>Profils disponibles</h4>
         {profiles.map(profile => (
@@ -40,20 +23,21 @@ export default function ProfileSelector() {
               <div className="profile-description">{profile.description}</div>
             </div>
 
-            {profile.id !== 'keyboard-default' && profile.id !== 'gamepad-default' && (
-              <button
-                className="delete-button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (confirm(`Supprimer le profil "${profile.name}" ?`)) {
-                    deleteProfile(profile.id)
-                  }
-                }}
-                title="Supprimer le profil"
-              >
-                🗑️
-              </button>
-            )}
+            {profile.id !== 'keyboard-default' &&
+              profile.id !== 'gamepad-default' && (
+                <button
+                  className="delete-button"
+                  onClick={e => {
+                    e.stopPropagation()
+                    if (confirm(`Supprimer le profil "${profile.name}" ?`)) {
+                      deleteProfile(profile.id)
+                    }
+                  }}
+                  title="Supprimer le profil"
+                >
+                  🗑️
+                </button>
+              )}
           </div>
         ))}
       </div>
@@ -100,7 +84,8 @@ export default function ProfileSelector() {
           gap: 10px;
         }
 
-        h3, h4 {
+        h3,
+        h4 {
           margin: 0;
           color: white;
         }

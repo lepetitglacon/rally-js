@@ -11,8 +11,6 @@ import { Environment } from '@react-three/drei'
 function App() {
   return (
     <>
-      <Ui />
-
       <div id="canvas-container" className="relative w-screen h-screen">
         <Canvas
           camera={{ near: 0.1, far: 10000 }}
@@ -43,6 +41,8 @@ function App() {
           </Physics>
         </Canvas>
       </div>
+
+      <Ui />
     </>
   )
 }

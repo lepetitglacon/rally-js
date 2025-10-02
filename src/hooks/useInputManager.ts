@@ -5,6 +5,7 @@ import {
   useInputStore,
 } from '@/stores/inputStore'
 import { type GamepadRef } from 'react-ts-gamepads'
+import { useFrame } from '@react-three/fiber'
 
 interface UseInputManagerProps {
   gamepads?: GamepadRef
@@ -29,7 +30,10 @@ export const useInputManager = ({
       switch (mapping.type) {
         case 'gamepad': {
           const gamepad = gamepads[mapping.gamepadId]
-          if (!gamepad) return 0
+          if (!gamepad) {
+            console.log(`[InputManager] Gamepad ${mapping.gamepadId} not found`)
+            return 0
+          }
 
           if (mapping.buttonIndex !== undefined) {
             const button = gamepad.buttons[mapping.buttonIndex]
@@ -37,19 +41,29 @@ export const useInputManager = ({
           }
 
           if (mapping.axisIndex !== undefined) {
-            const axisValue = gamepad.axes[mapping.axisIndex] || 0
+            const rawAxisValue = gamepad.axes[mapping.axisIndex] || 0
+            let axisValue = rawAxisValue
             const deadzone = mapping.deadzone || 0.1
-
-            // Appliquer la deadzone
-            if (Math.abs(axisValue) < deadzone) return 0
 
             switch (mapping.axisDirection) {
               case 'positive':
-                return Math.max(0, axisValue)
+                // Pour les pédales G29: 1 au repos, -1 quand appuyé
+                // Normaliser de [1, -1] vers [0, 1]
+                axisValue = (1 - axisValue) / 2
+                // Appliquer la deadzone
+                if (axisValue < deadzone) return 0
+                // Remapper [deadzone, 1] vers [0, 1]
+                return (axisValue - deadzone) / (1 - deadzone)
               case 'negative':
-                return Math.max(0, -axisValue)
+                // Pour les axes inversés
+                axisValue = (1 + axisValue) / 2
+                if (axisValue < deadzone) return 0
+                return (axisValue - deadzone) / (1 - deadzone)
               case 'both':
               default:
+                // Pour le volant: -1 gauche, 0 centre, 1 droite
+                // Appliquer la deadzone au centre
+                if (Math.abs(axisValue) < deadzone) return 0
                 return axisValue
             }
           }
@@ -92,7 +106,10 @@ export const useInputManager = ({
     if (!enabled) return
 
     const activeProfile = getActiveProfile()
-    if (!activeProfile) return
+    if (!activeProfile) {
+      console.log('[InputManager] No active profile')
+      return
+    }
 
     // Traiter chaque action
     Object.entries(activeProfile.mappings).forEach(([action, mappings]) => {
@@ -131,13 +148,11 @@ export const useInputManager = ({
     })
   }, [enabled, getActiveProfile, evaluateMapping, updateInput])
 
-  // Traiter les inputs à chaque frame
-  useEffect(() => {
+  // Traiter les inputs à chaque frame avec useFrame
+  useFrame(() => {
     if (!enabled) return
-
-    const interval = setInterval(processInputs, 16) // ~60fps
-    return () => clearInterval(interval)
-  }, [processInputs, enabled])
+    processInputs()
+  })
 
   // Reset des inputs quand le composant se démonte
   useEffect(() => {

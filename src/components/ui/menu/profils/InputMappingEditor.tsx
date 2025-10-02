@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import { useInputStore, type GameAction, type InputMapping } from '@/stores/inputStore'
+import {
+  type GameAction,
+  type InputMapping,
+  useInputStore,
+} from '@/stores/inputStore.ts'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 
 interface InputMappingEditorProps {
@@ -15,16 +19,14 @@ export default function InputMappingEditor({
   action,
   actionLabel,
   mappings,
-  onClose
+  onClose,
 }: InputMappingEditorProps) {
-  const {
-    addMapping,
-    removeMapping,
-    updateMapping
-  } = useInputStore()
+  const { addMapping, removeMapping, updateMapping } = useInputStore()
 
   const [isListening, setIsListening] = useState(false)
-  const [newMappingType, setNewMappingType] = useState<'gamepad' | 'keyboard' | 'mouse' | 'wheel'>('gamepad')
+  const [newMappingType, setNewMappingType] = useState<
+    'gamepad' | 'keyboard' | 'mouse' | 'wheel'
+  >('gamepad')
   const [gamepads, setGamepads] = useState<GamepadRef>({})
   useGamepads(gamepads => setGamepads(gamepads))
 
@@ -41,8 +43,8 @@ export default function InputMappingEditor({
           modifiers: {
             ctrl: e.ctrlKey,
             shift: e.shiftKey,
-            alt: e.altKey
-          }
+            alt: e.altKey,
+          },
         }
         addMapping(profileId, action, mapping)
         setIsListening(false)
@@ -56,10 +58,9 @@ export default function InputMappingEditor({
         setIsListening(false)
         document.removeEventListener('keydown', handleKeyDown)
       }, 5000)
-
     } else if (newMappingType === 'gamepad') {
       // Écouter les événements gamepad
-      let lastValues: Record<string, number> = {}
+      const lastValues: Record<string, number> = {}
 
       const checkGamepadInput = () => {
         Object.values(gamepads).forEach((gamepad, gamepadIndex) => {
@@ -71,7 +72,7 @@ export default function InputMappingEditor({
                 type: 'gamepad',
                 gamepadId: gamepadIndex,
                 buttonIndex,
-                deadzone: 0.1
+                deadzone: 0.1,
               }
               addMapping(profileId, action, mapping)
               setIsListening(false)
@@ -85,13 +86,16 @@ export default function InputMappingEditor({
             const key = `gamepad-${gamepadIndex}-axis-${axisIndex}`
             const threshold = 0.5
 
-            if (Math.abs(axis) > threshold && Math.abs(lastValues[key] || 0) <= threshold) {
+            if (
+              Math.abs(axis) > threshold &&
+              Math.abs(lastValues[key] || 0) <= threshold
+            ) {
               const mapping: InputMapping = {
                 type: 'gamepad',
                 gamepadId: gamepadIndex,
                 axisIndex,
                 axisDirection: axis > 0 ? 'positive' : 'negative',
-                deadzone: 0.2
+                deadzone: 0.2,
               }
               addMapping(profileId, action, mapping)
               setIsListening(false)
@@ -158,7 +162,9 @@ export default function InputMappingEditor({
     <div className="mapping-editor">
       <div className="mapping-editor-header">
         <h3>Configuration : {actionLabel}</h3>
-        <button className="close-button" onClick={onClose}>×</button>
+        <button className="close-button" onClick={onClose}>
+          ×
+        </button>
       </div>
 
       <div className="mapping-editor-body">
@@ -196,7 +202,7 @@ export default function InputMappingEditor({
                 name="mappingType"
                 value="gamepad"
                 checked={newMappingType === 'gamepad'}
-                onChange={(e) => setNewMappingType(e.target.value as any)}
+                onChange={e => setNewMappingType(e.target.value as any)}
               />
               Manette
             </label>
@@ -206,7 +212,7 @@ export default function InputMappingEditor({
                 name="mappingType"
                 value="keyboard"
                 checked={newMappingType === 'keyboard'}
-                onChange={(e) => setNewMappingType(e.target.value as any)}
+                onChange={e => setNewMappingType(e.target.value as any)}
               />
               Clavier
             </label>
@@ -216,7 +222,7 @@ export default function InputMappingEditor({
                 name="mappingType"
                 value="mouse"
                 checked={newMappingType === 'mouse'}
-                onChange={(e) => setNewMappingType(e.target.value as any)}
+                onChange={e => setNewMappingType(e.target.value as any)}
               />
               Souris
             </label>
@@ -226,7 +232,7 @@ export default function InputMappingEditor({
                 name="mappingType"
                 value="wheel"
                 checked={newMappingType === 'wheel'}
-                onChange={(e) => setNewMappingType(e.target.value as any)}
+                onChange={e => setNewMappingType(e.target.value as any)}
               />
               Volant
             </label>
@@ -238,9 +244,11 @@ export default function InputMappingEditor({
                 <p>🎯 En écoute... Appuyez sur un bouton ou bougez un axe</p>
                 <p className="listening-instruction">
                   {newMappingType === 'keyboard' && 'Appuyez sur une touche'}
-                  {newMappingType === 'gamepad' && 'Appuyez sur un bouton ou bougez un stick/gâchette'}
+                  {newMappingType === 'gamepad' &&
+                    'Appuyez sur un bouton ou bougez un stick/gâchette'}
                   {newMappingType === 'mouse' && 'Cliquez ou bougez la souris'}
-                  {newMappingType === 'wheel' && 'Tournez le volant ou appuyez sur une pédale'}
+                  {newMappingType === 'wheel' &&
+                    'Tournez le volant ou appuyez sur une pédale'}
                 </p>
                 <button className="btn btn-secondary" onClick={stopListening}>
                   Arrêter l'écoute
@@ -248,9 +256,14 @@ export default function InputMappingEditor({
               </div>
             ) : (
               <button className="btn btn-primary" onClick={startListening}>
-                Capturer un {newMappingType === 'gamepad' ? 'input manette' :
-                            newMappingType === 'keyboard' ? 'input clavier' :
-                            newMappingType === 'mouse' ? 'input souris' : 'input volant'}
+                Capturer un{' '}
+                {newMappingType === 'gamepad'
+                  ? 'input manette'
+                  : newMappingType === 'keyboard'
+                    ? 'input clavier'
+                    : newMappingType === 'mouse'
+                      ? 'input souris'
+                      : 'input volant'}
               </button>
             )}
           </div>
@@ -320,7 +333,9 @@ export default function InputMappingEditor({
           gap: 25px;
         }
 
-        .existing-mappings, .add-mapping, .gamepad-status {
+        .existing-mappings,
+        .add-mapping,
+        .gamepad-status {
           background: #333;
           padding: 15px;
           border-radius: 6px;
@@ -389,7 +404,7 @@ export default function InputMappingEditor({
           color: #ccc;
         }
 
-        .mapping-type-selector input[type="radio"] {
+        .mapping-type-selector input[type='radio'] {
           accent-color: #007acc;
         }
 
