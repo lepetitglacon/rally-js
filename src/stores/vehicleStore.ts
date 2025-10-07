@@ -17,6 +17,8 @@ export interface VehicleState {
   totalRacers: number
   damage: number // 0-100%
   fuel: number // 0-100%
+  worldPosition: [number, number, number] // Position 3D de la voiture
+  worldRotation: [number, number, number, number] // Quaternion de rotation
 }
 
 interface VehicleStore extends VehicleState {
@@ -33,6 +35,8 @@ interface VehicleStore extends VehicleState {
   setPosition: (position: number) => void
   setDamage: (damage: number) => void
   setFuel: (fuel: number) => void
+  setWorldPosition: (position: [number, number, number]) => void
+  setWorldRotation: (rotation: [number, number, number, number]) => void
   reset: () => void
 }
 
@@ -53,6 +57,8 @@ const initialState: VehicleState = {
   totalRacers: 1,
   damage: 0,
   fuel: 100,
+  worldPosition: [0, 0, 0],
+  worldRotation: [0, 0, 0, 1],
 }
 
 export const useVehicleStore = create<VehicleStore>(set => ({
@@ -86,6 +92,8 @@ export const useVehicleStore = create<VehicleStore>(set => ({
   setPosition: position => set({ position }),
   setDamage: damage => set({ damage: Math.max(0, Math.min(100, damage)) }),
   setFuel: fuel => set({ fuel: Math.max(0, Math.min(100, fuel)) }),
+  setWorldPosition: worldPosition => set({ worldPosition }),
+  setWorldRotation: worldRotation => set({ worldRotation }),
 
   reset: () => set(initialState),
 }))

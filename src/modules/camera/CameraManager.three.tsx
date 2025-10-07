@@ -5,6 +5,7 @@ import {
 } from '@react-three/drei'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useCameraStore } from '@/modules/camera/camera.store.ts'
+import CarCamera from '@/modules/camera/CarCamera.three.tsx'
 
 export default function CameraManager() {
   const activeCameraName = useCameraStore(state => state.active)
@@ -36,6 +37,9 @@ export default function CameraManager() {
           <FlyControls movementSpeed={shifting ? 500 : 100} />
           <PointerLockControls />
         </>
+      )}
+      {activeCameraName === 'car' && (
+        <CarCamera distance={8} height={4} smoothness={0.05} />
       )}
     </>
   )

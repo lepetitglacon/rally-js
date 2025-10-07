@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Menu from '@/components/ui/menu/Menu.tsx'
 import RallyHud from '@/components/ui/hud/RallyHud.tsx'
+import CameraDebug from '@/components/ui/debug/CameraDebug.tsx'
+import VehicleDebug from '@/components/ui/debug/VehicleDebug.tsx'
 
 export default function Ui() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -18,9 +20,9 @@ export default function Ui() {
 
       <Menu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      {/*<div className="flex absolute top-0 left-0 p-4 z-10 pointer-events-none text-white w-full h-full">*/}
-      {/*  <CameraUi />*/}
-      {/*</div>*/}
+      {/* Debug UI */}
+      <CameraDebug />
+      <VehicleDebug />
     </>
   )
 }

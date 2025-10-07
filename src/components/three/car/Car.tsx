@@ -7,7 +7,7 @@ import {
   useRaycastVehicle,
   type WheelInfoOptions,
 } from '@react-three/cannon'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useRef, useState } from 'react'
 import type { Group, Mesh } from 'three'
 import Wheel from '@/components/three/car/Wheel.tsx'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
@@ -38,7 +38,7 @@ export default function Car({
   rotation = [0, 0, 0],
   angularVelocity = [0, 0, 0],
   mass = 500,
-  sphereRadius = 0.6,
+  sphereRadius = 0.4,
 }: CarProps) {
   const gltf: LoaderType = useLoader(GLTFLoader, gltfFile)
 
@@ -53,8 +53,9 @@ export default function Car({
     getHandbrakeValue,
   } = useInputManager({ gamepads, enabled: true })
 
-  // Vehicle store for UI display
-  const { setThrottle, setBrake, setSteering } = useVehicleStore()
+  // Vehicle store for UI display and camera tracking
+  const { setThrottle, setBrake, setSteering, setWorldPosition, setWorldRotation } =
+    useVehicleStore()
 
   const gamepadDisplay = Object.keys(gamepads).map(gamepadId => {
     return (
@@ -98,28 +99,33 @@ export default function Car({
     useCustomSlidingRotationalSpeed: true,
   }
 
+  // Positions exactes des roues du modèle GLTF Subaru (après rotation -90° sur Y)
+  // Front est maintenant sur Z positif à cause de la rotation
   const wheelInfo1: WheelInfoOptions = {
     ...wheelInfo,
-    chassisConnectionPointLocal: [-width / 2, height, front],
+    chassisConnectionPointLocal: [-1.0024, 0.4029, 1.5109], // Front Left
     isFrontWheel: true,
   }
   const wheelInfo2: WheelInfoOptions = {
     ...wheelInfo,
-    chassisConnectionPointLocal: [width / 2, height, front],
+    chassisConnectionPointLocal: [1.0024, 0.4025, 1.5109], // Front Right
     isFrontWheel: true,
   }
   const wheelInfo3: WheelInfoOptions = {
     ...wheelInfo,
-    chassisConnectionPointLocal: [-width / 2, height, back],
+    chassisConnectionPointLocal: [-1.0043, 0.4028, -1.4843], // Back Left
     isFrontWheel: false,
   }
   const wheelInfo4: WheelInfoOptions = {
     ...wheelInfo,
-    chassisConnectionPointLocal: [width / 2, height, back],
+    chassisConnectionPointLocal: [1.0043, 0.4024, -1.4843], // Back Right
     isFrontWheel: false,
   }
 
-  const bodyY = 1
+  // Positions des sphères du chassis pour la physique
+  const bodyYBottom = 0.7 // Couche basse (légèrement surélevée)
+  const bodyYTop = 1.3 // Couche haute
+
   const [chassisBody, chassisApi] = useCompoundBody(
     () => ({
       allowSleep: false,
@@ -131,11 +137,12 @@ export default function Car({
       position,
       rotation,
       shapes: [
+        // Sphères de la couche BASSE (4 coins)
         {
           args: [sphereRadius],
           position: [
             wheelInfo1.chassisConnectionPointLocal[0],
-            bodyY,
+            bodyYBottom,
             wheelInfo1.chassisConnectionPointLocal[2],
           ],
           type: 'Sphere',
@@ -144,7 +151,7 @@ export default function Car({
           args: [sphereRadius],
           position: [
             wheelInfo2.chassisConnectionPointLocal[0],
-            bodyY,
+            bodyYBottom,
             wheelInfo2.chassisConnectionPointLocal[2],
           ],
           type: 'Sphere',
@@ -153,7 +160,7 @@ export default function Car({
           args: [sphereRadius],
           position: [
             wheelInfo3.chassisConnectionPointLocal[0],
-            bodyY,
+            bodyYBottom,
             wheelInfo3.chassisConnectionPointLocal[2],
           ],
           type: 'Sphere',
@@ -162,7 +169,44 @@ export default function Car({
           args: [sphereRadius],
           position: [
             wheelInfo4.chassisConnectionPointLocal[0],
-            bodyY,
+            bodyYBottom,
+            wheelInfo4.chassisConnectionPointLocal[2],
+          ],
+          type: 'Sphere',
+        },
+        // Sphères de la couche HAUTE (4 coins)
+        {
+          args: [sphereRadius],
+          position: [
+            wheelInfo1.chassisConnectionPointLocal[0],
+            bodyYTop,
+            wheelInfo1.chassisConnectionPointLocal[2],
+          ],
+          type: 'Sphere',
+        },
+        {
+          args: [sphereRadius],
+          position: [
+            wheelInfo2.chassisConnectionPointLocal[0],
+            bodyYTop,
+            wheelInfo2.chassisConnectionPointLocal[2],
+          ],
+          type: 'Sphere',
+        },
+        {
+          args: [sphereRadius],
+          position: [
+            wheelInfo3.chassisConnectionPointLocal[0],
+            bodyYTop,
+            wheelInfo3.chassisConnectionPointLocal[2],
+          ],
+          type: 'Sphere',
+        },
+        {
+          args: [sphereRadius],
+          position: [
+            wheelInfo4.chassisConnectionPointLocal[0],
+            bodyYTop,
             wheelInfo4.chassisConnectionPointLocal[2],
           ],
           type: 'Sphere',
@@ -172,21 +216,47 @@ export default function Car({
     useRef<Mesh>(null),
   )
 
+  // Create a ref for the vehicle that we'll use both internally and externally
+  const vehicleRef = useRef<Group>(null)
+
   const [vehicle, vehicleApi] = useRaycastVehicle(
     () => ({
       chassisBody,
       wheelInfos: [wheelInfo1, wheelInfo2, wheelInfo3, wheelInfo4],
       wheels,
     }),
-    useRef<Group>(null),
+    vehicleRef,
   )
 
-  useEffect(() => vehicleApi.sliding.subscribe(v => {}), [])
+  // Store latest physics values without triggering re-renders
+  const latestPosition = useRef<[number, number, number]>([0, 0, 0])
+  const latestRotation = useRef<[number, number, number, number]>([0, 0, 0, 1])
+
+  useEffect(() => {
+    vehicleApi.sliding.subscribe(v => {})
+
+    // Subscribe to chassis position and rotation - store in refs
+    const unsubscribePosition = chassisApi.position.subscribe(pos => {
+      latestPosition.current = [pos[0], pos[1], pos[2]]
+    })
+
+    const unsubscribeRotation = chassisApi.quaternion.subscribe(quat => {
+      latestRotation.current = [quat[0], quat[1], quat[2], quat[3]]
+    })
+
+    return () => {
+      unsubscribePosition()
+      unsubscribeRotation()
+    }
+  }, [])
 
   // Constants for vehicle physics
   const maxEngineForce = 1500
   const maxSteerValue = 0.5
   const maxBrakeForce = 100
+
+  // Throttle store updates to avoid constant re-renders
+  const frameCount = useRef(0)
 
   useFrame(() => {
     // Get input values from the input manager
@@ -212,10 +282,17 @@ export default function Car({
     vehicleApi.setBrake(brakeForce, 2)
     vehicleApi.setBrake(brakeForce, 3)
 
-    // Update vehicle store for UI display
-    setThrottle(acceleration * 100)
-    setBrake(brake * 100)
-    setSteering(steering * 100)
+    // Update position/rotation every frame for smooth camera
+    setWorldPosition(latestPosition.current)
+    setWorldRotation(latestRotation.current)
+
+    // Update UI values (throttled to every 3 frames ~20fps)
+    frameCount.current++
+    if (frameCount.current % 3 === 0) {
+      setThrottle(acceleration * 100)
+      setBrake(brake * 100)
+      setSteering(steering * 100)
+    }
   })
 
   return (

@@ -1,7 +1,7 @@
 import { useLoader } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import mapGltf from '@/assets/gltf/france-besancon-bregille.glb?url'
-import { Group, Mesh } from 'three'
+import { Mesh } from 'three'
 import { Terrain } from '@/components/three/cannon/Terrain.tsx'
 import { usePlane, useSphere } from '@react-three/cannon'
 import Car from '@/components/three/car/Car.tsx'
