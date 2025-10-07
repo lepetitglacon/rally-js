@@ -13,6 +13,7 @@ import Wheel from '@/components/three/car/Wheel.tsx'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 import { Html } from '@react-three/drei'
 import { useInputManager } from '@/hooks/useInputManager'
+import { useVehicleStore } from '@/stores/vehicleStore'
 
 interface CarProps {
   width?: number
@@ -45,7 +46,15 @@ export default function Car({
   useGamepads(gamepads => setGamepads(gamepads))
 
   // Initialize input manager to process gamepad/keyboard inputs
-  useInputManager({ gamepads, enabled: true })
+  const {
+    getSteeringValue,
+    getAccelerationValue,
+    getBrakeValue,
+    getHandbrakeValue,
+  } = useInputManager({ gamepads, enabled: true })
+
+  // Vehicle store for UI display
+  const { setThrottle, setBrake, setSteering } = useVehicleStore()
 
   const gamepadDisplay = Object.keys(gamepads).map(gamepadId => {
     return (
@@ -174,33 +183,39 @@ export default function Car({
 
   useEffect(() => vehicleApi.sliding.subscribe(v => {}), [])
 
+  // Constants for vehicle physics
+  const maxEngineForce = 1500
+  const maxSteerValue = 0.5
+  const maxBrakeForce = 100
+
   useFrame(() => {
-    // const { backward, brake, forward, left, reset, right } = controls.current
-    //
-    // for (let e = 2; e < 4; e++) {
-    //   vehicleApi.applyEngineForce(
-    //     forward || backward ? force * (forward && !backward ? -1 : 1) : 0,
-    //     2,
-    //   )
-    // }
-    //
-    // for (let s = 0; s < 2; s++) {
-    //   vehicleApi.setSteeringValue(
-    //     left || right ? steer * (left && !right ? 1 : -1) : 0,
-    //     s,
-    //   )
-    // }
-    //
-    // for (let b = 2; b < 4; b++) {
-    //   vehicleApi.setBrake(brake ? maxBrake : 0, b)
-    // }
-    //
-    // if (reset) {
-    //   chassisApi.position.set(...position)
-    //   chassisApi.velocity.set(0, 0, 0)
-    //   chassisApi.angularVelocity.set(...angularVelocity)
-    //   chassisApi.rotation.set(...rotation)
-    // }
+    // Get input values from the input manager
+    const steering = getSteeringValue() // -1 (left) to 1 (right)
+    const acceleration = getAccelerationValue() // 0 to 1
+    const brake = getBrakeValue() // 0 to 1
+    const handbrake = getHandbrakeValue() // 0 to 1
+
+    // Apply engine force to rear wheels (wheels 2 and 3)
+    const engineForce = acceleration * maxEngineForce * -1
+    vehicleApi.applyEngineForce(engineForce, 2)
+    vehicleApi.applyEngineForce(engineForce, 3)
+
+    // Apply steering to front wheels (wheels 0 and 1)
+    const steerValue = steering * maxSteerValue
+    vehicleApi.setSteeringValue(steerValue, 0)
+    vehicleApi.setSteeringValue(steerValue, 1)
+
+    // Apply brake force
+    const brakeForce = (brake + handbrake) * maxBrakeForce
+    vehicleApi.setBrake(brakeForce, 0)
+    vehicleApi.setBrake(brakeForce, 1)
+    vehicleApi.setBrake(brakeForce, 2)
+    vehicleApi.setBrake(brakeForce, 3)
+
+    // Update vehicle store for UI display
+    setThrottle(acceleration * 100)
+    setBrake(brake * 100)
+    setSteering(steering * 100)
   })
 
   return (
@@ -210,7 +225,7 @@ export default function Car({
           <Suspense>
             <primitive
               object={gltf.scene}
-              rotation={[0, Math.PI / 2, 0]}
+              rotation={[0, -Math.PI / 2, 0]}
               castShadow
               receiveShadow
             >
