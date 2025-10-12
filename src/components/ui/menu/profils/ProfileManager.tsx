@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import {
+  DEFAULT_PROFILE_IDS,
   type GameAction,
   type InputProfile,
   useInputStore,
-  DEFAULT_PROFILE_IDS,
-} from '@/stores/inputStore.ts'
+} from '@/stores/input.store.ts'
 import InputMappingEditor from './InputMappingEditor.tsx'
 
 interface ProfileManagerProps {
@@ -29,8 +29,12 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
   const activeProfile = getActiveProfile()
 
   // Séparer les profils par défaut et personnalisés
-  const defaultProfiles = profiles.filter(p => DEFAULT_PROFILE_IDS.includes(p.id))
-  const customProfiles = profiles.filter(p => !DEFAULT_PROFILE_IDS.includes(p.id))
+  const defaultProfiles = profiles.filter(p =>
+    DEFAULT_PROFILE_IDS.includes(p.id),
+  )
+  const customProfiles = profiles.filter(
+    p => !DEFAULT_PROFILE_IDS.includes(p.id),
+  )
 
   const gameActions: GameAction[] = [
     'accelerate',

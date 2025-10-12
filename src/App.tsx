@@ -13,7 +13,7 @@ function App() {
     <>
       <div id="canvas-container" className="relative w-screen h-screen">
         <Canvas
-          camera={{ near: 0.1, far: 10000 }}
+          camera={{ near: 0.1, far: 10000000 }}
           className="absolute inset-0"
           gl={{
             powerPreference: 'high-performance',

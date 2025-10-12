@@ -1,4 +1,4 @@
-import { useInputStore } from '@/stores/inputStore.ts'
+import { useInputStore } from '@/stores/input.store.ts'
 
 export default function ProfileSelector() {
   const { profiles, activeProfileId, setActiveProfile, deleteProfile } =

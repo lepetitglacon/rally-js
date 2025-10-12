@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 import Car from './Car'
 import { useInputManager } from '@/hooks/useInputManager'
-import { useInputStore } from '@/stores/inputStore'
+import { useInputStore } from '@/stores/input.store.ts'
 
 export default function CarWithInputs() {
   const [gamepads, setGamepads] = useState<GamepadRef>({})
@@ -15,7 +15,7 @@ export default function CarWithInputs() {
     getAccelerationValue,
     getBrakeValue,
     getHandbrakeValue,
-    currentInputs
+    currentInputs,
   } = useInputManager({ gamepads, enabled: true })
 
   // Accès au store pour les configurations
@@ -42,17 +42,19 @@ export default function CarWithInputs() {
       <Car position={[0, 50, 0]} />
 
       {/* Interface de debug pour les inputs */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '15px',
-        borderRadius: '8px',
-        fontFamily: 'monospace',
-        fontSize: '12px'
-      }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '15px',
+          borderRadius: '8px',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+        }}
+      >
         <h3>Input Debug</h3>
 
         <div>
@@ -71,7 +73,7 @@ export default function CarWithInputs() {
           <strong>Sélecteur de profil:</strong>
           <select
             value={getActiveProfile()?.id || ''}
-            onChange={(e) => setActiveProfile(e.target.value)}
+            onChange={e => setActiveProfile(e.target.value)}
             style={{ marginLeft: '5px', padding: '2px' }}
           >
             {profiles.map(profile => (

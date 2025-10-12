@@ -46,8 +46,6 @@ export function extractHeightsFromTerrain(
     maxY = Math.max(maxY, y)
   }
 
-  console.log('Terrain bounds:', { minX, maxX, minZ, maxZ, minY, maxY })
-
   // Créer une grille de hauteurs
   const stepX = (maxX - minX) / (resolution - 1)
   const stepZ = (maxZ - minZ) / (resolution - 1)
@@ -136,9 +134,10 @@ function getHeightAtPosition(
 /**
  * Convertit les hauteurs en image heightmap (0-255)
  */
-export function heightsToImageData(
-  heightmapData: HeightmapData,
-): { canvas: HTMLCanvasElement; imageData: ImageData } {
+export function heightsToImageData(heightmapData: HeightmapData): {
+  canvas: HTMLCanvasElement
+  imageData: ImageData
+} {
   const { heights, width, height: h, minHeight, maxHeight } = heightmapData
 
   const canvas = document.createElement('canvas')

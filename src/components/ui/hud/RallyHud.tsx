@@ -1,5 +1,5 @@
-import { useVehicleStore } from '@/stores/vehicleStore'
-import { useInputStore } from '@/stores/inputStore'
+import { useVehicleStore } from '@/stores/vehicle.store.ts'
+import { useInputStore } from '@/stores/input.store.ts'
 
 export default function RallyHud() {
   const {
@@ -28,8 +28,6 @@ export default function RallyHud() {
 
   // Debug - log current profile and inputs
   const activeProfile = getActiveProfile()
-  console.log('Active Profile:', activeProfile?.name)
-  console.log('Current Inputs:', currentInputs)
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)

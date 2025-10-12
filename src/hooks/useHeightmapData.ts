@@ -87,8 +87,6 @@ export const meshToHeightmap = (mesh: Mesh, nx = 128, nz = 64) => {
   const geom = mesh.geometry
   const posAttr = geom.attributes.position
 
-  console.log(posAttr)
-
   const bbox = new THREE.Box3().setFromObject(mesh)
   const size = new THREE.Vector3()
   bbox.getSize(size)
@@ -97,16 +95,11 @@ export const meshToHeightmap = (mesh: Mesh, nx = 128, nz = 64) => {
   const dz = size.z / (nz - 1)
 
   const grid = Array.from({ length: nx }, () => Array(nz).fill(bbox.min.y))
-  console.log('grid', grid)
 
   const v = new THREE.Vector3()
   for (let i = 0; i < posAttr.count; i++) {
     v.fromBufferAttribute(posAttr, i)
     v.applyMatrix4(mesh.matrixWorld)
-
-    console.log(
-      `Vertex ${i}: (${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})`,
-    )
 
     const gx = Math.floor((v.x - bbox.min.x) / dx)
     const gz = Math.floor((v.z - bbox.min.z) / dz)

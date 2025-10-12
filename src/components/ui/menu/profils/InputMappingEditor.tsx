@@ -3,7 +3,7 @@ import {
   type GameAction,
   type InputMapping,
   useInputStore,
-} from '@/stores/inputStore.ts'
+} from '@/stores/input.store.ts'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 
 interface InputMappingEditorProps {

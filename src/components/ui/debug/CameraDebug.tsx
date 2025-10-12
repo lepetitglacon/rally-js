@@ -1,10 +1,13 @@
-import { useCameraStore } from '@/modules/camera/camera.store'
-import { useVehicleStore } from '@/stores/vehicleStore'
+import { useCameraStore } from '@/stores/camera.store.ts'
+import { useVehicleStore } from '@/stores/vehicle.store.ts'
 
 export default function CameraDebug() {
   const activeCamera = useCameraStore(state => state.active)
+  const camera = useCameraStore(state => state.camera)
   const worldPosition = useVehicleStore(state => state.worldPosition)
   const worldRotation = useVehicleStore(state => state.worldRotation)
+
+  if (!camera) return null
 
   return (
     <div className="fixed bottom-4 left-4 bg-black/70 text-white p-4 rounded-lg font-mono text-sm space-y-2 pointer-events-none z-10">
@@ -16,6 +19,13 @@ export default function CameraDebug() {
         <div>
           <span className="text-gray-400">Mode:</span>{' '}
           <span className="text-green-400 font-bold">{activeCamera}</span>
+        </div>
+
+        <div className="mt-3 pt-2 border-t border-white/30">
+          <div className="text-gray-400 text-xs mb-1">Camera Position:</div>
+          <div className="pl-2">
+            ({camera.position.x}, {camera.position.y}, {camera.position.z})
+          </div>
         </div>
 
         <div className="mt-3 pt-2 border-t border-white/30">

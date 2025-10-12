@@ -1,4 +1,4 @@
-import { useVehicleStore } from '@/stores/vehicleStore'
+import { useVehicleStore } from '@/stores/vehicle.store.ts'
 
 export default function VehicleDebug() {
   const speed = useVehicleStore(state => state.speed)

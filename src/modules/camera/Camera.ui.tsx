@@ -1,4 +1,4 @@
-import { useCameraStore } from '@/modules/camera/camera.store.ts'
+import { useCameraStore } from '@/stores/camera.store.ts'
 
 export default function CameraUi() {
   const activeCameraName = useCameraStore(state => state.active)

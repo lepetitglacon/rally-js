@@ -13,7 +13,7 @@ import Wheel from '@/components/three/car/Wheel.tsx'
 import { type GamepadRef, useGamepads } from 'react-ts-gamepads'
 import { Html } from '@react-three/drei'
 import { useInputManager } from '@/hooks/useInputManager'
-import { useVehicleStore } from '@/stores/vehicleStore'
+import { useVehicleStore } from '@/stores/vehicle.store.ts'
 
 interface CarProps {
   width?: number
@@ -54,8 +54,13 @@ export default function Car({
   } = useInputManager({ gamepads, enabled: true })
 
   // Vehicle store for UI display and camera tracking
-  const { setThrottle, setBrake, setSteering, setWorldPosition, setWorldRotation } =
-    useVehicleStore()
+  const {
+    setThrottle,
+    setBrake,
+    setSteering,
+    setWorldPosition,
+    setWorldRotation,
+  } = useVehicleStore()
 
   const gamepadDisplay = Object.keys(gamepads).map(gamepadId => {
     return (

@@ -3,7 +3,7 @@ import {
   type GameAction,
   type InputMapping,
   useInputStore,
-} from '@/stores/inputStore'
+} from '@/stores/input.store.ts'
 import { type GamepadRef } from 'react-ts-gamepads'
 import { useFrame } from '@react-three/fiber'
 
@@ -31,7 +31,7 @@ export const useInputManager = ({
         case 'gamepad': {
           const gamepad = gamepads[mapping.gamepadId]
           if (!gamepad) {
-            console.log(`[InputManager] Gamepad ${mapping.gamepadId} not found`)
+            // console.log(`[InputManager] Gamepad ${mapping.gamepadId} not found`)
             return 0
           }
 

@@ -7,13 +7,11 @@ import { NURBSCurve } from 'three/examples/jsm/curves/NURBSCurve'
 
 export default function Spline() {
   const gltf: LoaderType = useLoader(GLTFLoader, splineGltf)
-  console.log(gltf)
 
   const knots = [0, 1]
   const controls = [0, 1]
 
   const curve = new NURBSCurve(2, knots, controls)
-  console.log(curve)
 
   return (
     <Suspense>

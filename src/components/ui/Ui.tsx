@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Menu from '@/components/ui/menu/Menu.tsx'
 import RallyHud from '@/components/ui/hud/RallyHud.tsx'
 import CameraDebug from '@/components/ui/debug/CameraDebug.tsx'
-import VehicleDebug from '@/components/ui/debug/VehicleDebug.tsx'
 
 export default function Ui() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -22,7 +21,6 @@ export default function Ui() {
 
       {/* Debug UI */}
       <CameraDebug />
-      <VehicleDebug />
     </>
   )
 }

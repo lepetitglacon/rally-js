@@ -1,7 +1,8 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import { Quaternion, Vector3 } from 'three'
-import { useVehicleStore } from '@/stores/vehicleStore'
+import { useVehicleStore } from '@/stores/vehicle.store.ts'
+import { useCameraStore } from '@/stores/camera.store.ts'
 
 interface CarCameraProps {
   distance?: number
@@ -14,7 +15,7 @@ export default function CarCamera({
   height = 3,
   smoothness = 0.1,
 }: CarCameraProps) {
-  const { camera } = useThree()
+  const camera = useCameraStore(state => state.camera)
   const currentPosition = useRef(new Vector3())
   const currentLookAt = useRef(new Vector3())
 

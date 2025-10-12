@@ -1,10 +1,7 @@
-import { useLoader } from '@react-three/fiber'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import mapGltf from '@/assets/gltf/france-besancon-bregille.glb?url'
-import { Mesh } from 'three'
-import { Terrain } from '@/components/three/cannon/Terrain.tsx'
+// import mapGltf from '@/assets/gltf/france-besancon-bregille.glb?url'
+import { Box3, Mesh } from 'three'
 import { usePlane, useSphere } from '@react-three/cannon'
-import Car from '@/components/three/car/Car.tsx'
+import ChunkManager from '@/components/three/stage/ChunkManager.tsx'
 
 export type LoaderType = {
   animations: []
@@ -18,6 +15,8 @@ export type LoaderType = {
   scenes: Group[]
   userData: any
 }
+
+export type MeshWithBbox = Mesh & { worldBbox: Box3 }
 
 function Plane(props) {
   const [ref] = usePlane(() => ({
@@ -48,21 +47,11 @@ function Cube() {
 }
 
 export default function Stage() {
-  const gltf: LoaderType = useLoader(GLTFLoader, mapGltf)
-  console.log(gltf)
-
-  const terrain: Mesh = gltf.scene.children.find(c => c.name === 'Terrain')
-  console.log('Terrain found:', terrain)
-  console.log(
-    'All children:',
-    gltf.scene.children.map(c => ({ name: c.name, type: c.type })),
-  )
-
   return (
     <>
       <Cube />
-      {terrain && <Terrain mesh={terrain} type={'trimesh'} />}
-      <Car />
+      <ChunkManager />
+      {/*<Car />*/}
     </>
   )
 }
